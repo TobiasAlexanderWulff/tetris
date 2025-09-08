@@ -3,16 +3,17 @@
   "private": true,
   "version": "0.1.0",
   "description": "Tetris game monorepo (core engine + web app)",
+  "packageManager": "pnpm@9.6.0",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run --workspace @tetris/web dev",
-    "build": "npm run --workspace @tetris/web build && npm run --workspace @tetris/core build",
-    "preview": "npm run --workspace @tetris/web preview",
-    "typecheck": "npm run --workspace @tetris/core typecheck && npm run --workspace @tetris/web typecheck",
-    "lint": "npm run --workspace @tetris/core lint && npm run --workspace @tetris/web lint",
-    "format": "npm run --workspace @tetris/core format && npm run --workspace @tetris/web format",
-    "test": "npm run --workspace @tetris/core test --silent && npm run --workspace @tetris/web test --silent"
+    "dev": "pnpm --filter @tetris/web dev",
+    "build": "pnpm --filter @tetris/web build && pnpm --filter @tetris/core build",
+    "preview": "pnpm --filter @tetris/web preview",
+    "typecheck": "pnpm --filter @tetris/core typecheck && pnpm --filter @tetris/web typecheck",
+    "lint": "pnpm --filter @tetris/core lint && pnpm --filter @tetris/web lint",
+    "format": "pnpm --filter @tetris/core format && pnpm --filter @tetris/web format",
+    "test": "pnpm --filter @tetris/core test --silent && pnpm --filter @tetris/web test --silent"
   }
 }
