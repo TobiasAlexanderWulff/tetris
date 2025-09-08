@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@tetris/core": ["../core/src/index.ts"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
+
