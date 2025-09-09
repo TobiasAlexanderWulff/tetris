@@ -11,6 +11,7 @@ import { HelpModal } from './HelpModal';
 import { StatusToasts, type Toast } from './StatusToasts';
 import { NextQueue } from './NextQueue';
 import { HoldBox } from './HoldBox';
+import { GameOverOverlay } from './GameOverOverlay';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -37,6 +38,8 @@ function GameCanvasInner(): JSX.Element {
   const [lines, setLines] = React.useState(0);
   const [showSettings, setShowSettings] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
+  const [gameOver, setGameOver] = React.useState(false);
+  const [instanceId, setInstanceId] = React.useState(0);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
   const palette = React.useMemo(() => getPalette(settings.theme), [settings.theme]);
@@ -75,6 +78,11 @@ function GameCanvasInner(): JSX.Element {
           for (const m of msgs) addToast(m);
         }
       }
+      else if (e.type === 'GameOver') {
+        setGameOver(true);
+        setPaused(true);
+        host.setPaused(true);
+      }
     });
     host.start();
     return () => {
@@ -82,7 +90,7 @@ function GameCanvasInner(): JSX.Element {
       hostRef.current = null;
       unsubscribe();
     };
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme]);
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme, instanceId]);
 
   // Apply settings changes to input and theme live
   useEffect(() => {
@@ -149,6 +157,25 @@ function GameCanvasInner(): JSX.Element {
       />
       {showSettings ? <SettingsModal onClose={() => setShowSettings(false)} /> : null}
       {showHelp ? <HelpModal onClose={() => setShowHelp(false)} /> : null}
+      <GameOverOverlay
+        visible={gameOver}
+        score={score}
+        level={level}
+        lines={lines}
+        onRestart={() => {
+          hostRef.current?.dispose();
+          hostRef.current = null;
+          setScore(0);
+          setLevel(0);
+          setLines(0);
+          setNextIds([]);
+          setHoldId(null);
+          setCanHold(true);
+          setGameOver(false);
+          setPaused(false);
+          setInstanceId((n) => n + 1);
+        }}
+      />
     </div>
   );
 }
