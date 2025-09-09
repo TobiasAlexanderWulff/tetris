@@ -18,6 +18,10 @@ export class GameHost {
   private paused = false;
   private readonly onResizeBound: () => void;
   private readonly attachTarget: Window;
+  // Cached canvas size and DPR to avoid redundant resize work.
+  private lastCssWidth = 0;
+  private lastCssHeight = 0;
+  private lastDpr = 0;
 
   /**
    * @param canvas - target canvas element
@@ -43,6 +47,7 @@ export class GameHost {
   start(): void {
     this.input.attach(this.attachTarget);
     window.addEventListener('resize', this.onResizeBound);
+    // Initial sizing
     this.handleResize();
     this.lastTime = this.now();
     this.rafHandle = this.raf(this.tick);
@@ -83,17 +88,30 @@ export class GameHost {
     this.renderer.dispose();
   }
 
-  /** Recompute canvas size and notify renderer. */
+  /** Recompute canvas size (CSS pixels) and notify renderer; updates backing store for DPR. */
   private handleResize(): void {
     const dpr = Math.max(1, window.devicePixelRatio || 1);
-    const { clientWidth: w, clientHeight: h } = this.canvas.parentElement || document.body;
-    // CSS size
-    this.canvas.style.width = `${w}px`;
-    this.canvas.style.height = `${h}px`;
-    // Backing store
-    this.canvas.width = Math.max(1, Math.floor(w * dpr));
-    this.canvas.height = Math.max(1, Math.floor(h * dpr));
-    this.renderer.resize(w, h, dpr);
+    const rect = this.canvas.getBoundingClientRect();
+    let w = Math.floor(rect.width);
+    let h = Math.floor(rect.height);
+    if (!w || !h) {
+      const parent = (this.canvas.parentElement as HTMLElement) || document.documentElement;
+      w = parent.clientWidth;
+      h = parent.clientHeight;
+    }
+    if (w <= 0 || h <= 0) return;
+    // Only apply when something changed (rAF-throttled via tick as well)
+    if (w !== this.lastCssWidth || h !== this.lastCssHeight || dpr !== this.lastDpr) {
+      this.lastCssWidth = w;
+      this.lastCssHeight = h;
+      this.lastDpr = dpr;
+      // Backing store in device pixels; setting these resets the transform
+      const bw = Math.max(1, Math.floor(w * dpr));
+      const bh = Math.max(1, Math.floor(h * dpr));
+      if (this.canvas.width !== bw) this.canvas.width = bw;
+      if (this.canvas.height !== bh) this.canvas.height = bh;
+      this.renderer.resize(w, h, dpr);
+    }
   }
 
   /** Animation frame callback; processes updates and renders. */
@@ -130,6 +148,8 @@ export class GameHost {
       }
     }
 
+    // Throttle resize work to rAF: check for size/DPR changes once per frame
+    this.handleResize();
     // Render
     this.renderer.draw(this.engine.getSnapshot());
 

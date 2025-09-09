@@ -29,8 +29,9 @@ describe('CanvasRenderer', () => {
   it('resizes with DPR and draws without throwing', () => {
     const canvas = document.createElement('canvas');
     // jsdom doesn't implement getContext; provide a minimal stub
+    const setTransform = vi.fn();
     const ctxStub: Partial<CanvasRenderingContext2D> = {
-      setTransform: () => void 0,
+      setTransform,
       clearRect: () => void 0,
       fillRect: () => void 0,
       beginPath: () => void 0,
@@ -43,6 +44,8 @@ describe('CanvasRenderer', () => {
     renderer.resize(200, 400, 2);
     const snap = makeSnapshot() as unknown as import('@tetris/core').Snapshot;
     expect(() => renderer.draw(snap)).not.toThrow();
+    // ensure DPR is applied on resize
+    expect(setTransform).toHaveBeenCalledWith(2, 0, 0, 2, 0, 0);
     renderer.dispose();
   });
 });

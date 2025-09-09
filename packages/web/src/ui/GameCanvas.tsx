@@ -140,7 +140,14 @@ function GameCanvasInner(): JSX.Element {
   }, []);
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div
+      style={{
+        position: 'relative',
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+      }}
+    >
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
       <HUD score={score} level={level} lines={lines} />
       <NextQueue next={nextIds} palette={palette} />

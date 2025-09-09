@@ -84,6 +84,36 @@ describe('GameHost', () => {
     host.dispose();
   });
 
+  it('sets backing store size based on DPR', () => {
+    const container = document.createElement('div');
+    Object.defineProperty(container, 'clientWidth', { get: () => 400 });
+    Object.defineProperty(container, 'clientHeight', { get: () => 200 });
+    document.body.appendChild(container);
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    // Simulate high-DPI display
+    Object.defineProperty(window, 'devicePixelRatio', { value: 2, configurable: true });
+
+    const engine = createEngine();
+    const renderer = new TestRenderer();
+    const input = new TestInput();
+    let called = false;
+    const rafOnce = (fn: (t: number) => void) => {
+      if (!called) {
+        called = true;
+        fn(0);
+      }
+      return 1;
+    };
+    const host = new GameHost(canvas, engine, renderer, input, rafOnce, () => 0);
+    host.start();
+    expect(canvas.width).toBe(800);
+    expect(canvas.height).toBe(400);
+    expect(renderer.width).toBe(400);
+    expect(renderer.height).toBe(200);
+    host.dispose();
+  });
+
   it('pauses updates when setPaused(true)', () => {
     const container = document.createElement('div');
     Object.defineProperty(container, 'clientWidth', { get: () => 200 });
