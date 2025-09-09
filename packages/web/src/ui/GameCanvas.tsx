@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createDefaultEngine, GameHost } from '../game/GameHost';
-import type { IInputSource, IRenderer } from '../game/types';
+import type { IRenderer } from '../game/types';
+import { KeyboardInput } from '../input/KeyboardInput';
 import type { Snapshot } from '@tetris/core';
 
 /**
@@ -155,16 +156,7 @@ function getShapeOffsets(active: Snapshot['active']): { x: number; y: number }[]
   return [{ x: -1, y: 0 }, { x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }];
 }
 
-/**
- * No-op input source for M2 bootstrapping; emits no inputs.
- */
-class NoInput implements IInputSource {
-  attach(): void {}
-  detach(): void {}
-  poll(): import('@tetris/core').InputEvent[] {
-    return [];
-  }
-}
+// KeyboardInput is now used; no no-op input needed.
 
 /**
  * GameCanvas mounts the game host: engine + renderer + input.
@@ -177,7 +169,7 @@ export function GameCanvas(): JSX.Element {
     const canvas = canvasRef.current!;
     const engine = createDefaultEngine();
     const renderer = new BasicRenderer(canvas);
-    const input = new NoInput();
+    const input = new KeyboardInput();
     const host = new GameHost(canvas, engine, renderer, input);
     hostRef.current = host;
     host.start();
