@@ -7,6 +7,7 @@ import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
 import { SettingsProvider, useSettings } from '../state/settings';
 import { SettingsModal } from './SettingsModal';
+import { StatusToasts, type Toast } from './StatusToasts';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -31,6 +32,7 @@ function GameCanvasInner(): JSX.Element {
   const [level, setLevel] = React.useState(0);
   const [lines, setLines] = React.useState(0);
   const [showSettings, setShowSettings] = React.useState(false);
+  const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
 
   useEffect(() => {
@@ -51,7 +53,18 @@ function GameCanvasInner(): JSX.Element {
     const unsubscribe = engine.subscribe((e) => {
       if (e.type === 'ScoreChanged') setScore(e.score);
       else if (e.type === 'LevelChanged') setLevel(e.level);
-      else if (e.type === 'LinesCleared') setLines((prev) => prev + e.count);
+      else if (e.type === 'LinesCleared') {
+        setLines((prev) => prev + e.count);
+        if (settings.animations) {
+          const msgs: string[] = [];
+          if (e.count === 4) msgs.push(e.b2b ? 'Back-to-Back TETRIS!' : 'TETRIS!');
+          else if (e.count === 3) msgs.push('Triple');
+          else if (e.count === 2) msgs.push('Double');
+          else if (e.count === 1) msgs.push('Single');
+          if (typeof e.combo === 'number' && e.combo > 0) msgs.push(`Combo x${e.combo + 1}`);
+          for (const m of msgs) addToast(m);
+        }
+      }
     });
     host.start();
     return () => {
@@ -95,6 +108,7 @@ function GameCanvasInner(): JSX.Element {
     <div style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
       <HUD score={score} level={level} lines={lines} />
+      <StatusToasts toasts={toasts} />
       <PauseOverlay
         visible={paused}
         onOpenSettings={() => setShowSettings(true)}
@@ -106,4 +120,18 @@ function GameCanvasInner(): JSX.Element {
       {showSettings ? <SettingsModal onClose={() => setShowSettings(false)} /> : null}
     </div>
   );
+}
+
+function useToastManager() {
+  const [toasts, setToasts] = React.useState<Toast[]>([]);
+  const addToast = (text: string) => {
+    const id = Date.now() + Math.random();
+    const t: Toast = { id, text };
+    setToasts((prev) => [...prev, t]);
+    // Remove after 1.8s
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((x) => x.id !== id));
+    }, 1800);
+  };
+  return { toasts, addToast, setToasts };
 }

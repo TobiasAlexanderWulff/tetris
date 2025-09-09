@@ -40,6 +40,15 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
             onChange={(e) => setSettings({ das: clampInt(e.target.value, 0, 1000) })}
           />
         </div>
+        <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
+          <label htmlFor="animations">Animations (Juice)</label>
+          <input
+            id="animations"
+            type="checkbox"
+            checked={settings.animations}
+            onChange={(e) => setSettings({ animations: e.target.checked })}
+          />
+        </div>
         <div style={row}>
           <label htmlFor="arr">ARR (ms)</label>
           <input
