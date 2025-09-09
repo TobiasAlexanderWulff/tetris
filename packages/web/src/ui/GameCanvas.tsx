@@ -46,6 +46,10 @@ function GameCanvasInner(): JSX.Element {
   const [nextIds, setNextIds] = React.useState<readonly import('@tetris/core').TetrominoId[]>([]);
   const [holdId, setHoldId] = React.useState<import('@tetris/core').TetrominoId | null>(null);
   const [canHold, setCanHold] = React.useState(true);
+  const animationsRef = React.useRef(settings.animations);
+  React.useEffect(() => {
+    animationsRef.current = settings.animations;
+  }, [settings.animations]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -68,7 +72,7 @@ function GameCanvasInner(): JSX.Element {
       else if (e.type === 'LevelChanged') setLevel(e.level);
       else if (e.type === 'LinesCleared') {
         setLines((prev) => prev + e.count);
-        if (settings.animations) {
+        if (animationsRef.current) {
           const msgs: string[] = [];
           if (e.count === 4) msgs.push(e.b2b ? 'Back-to-Back TETRIS!' : 'TETRIS!');
           else if (e.count === 3) msgs.push('Triple');
@@ -90,23 +94,19 @@ function GameCanvasInner(): JSX.Element {
       hostRef.current = null;
       unsubscribe();
     };
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme, settings.animations, addToast, instanceId]);
+  }, [addToast, instanceId]);
 
-  // Apply settings changes to input and theme live
+  // Apply settings changes to input live (no restart)
   useEffect(() => {
-    inputRef.current?.updateConfig({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
-    // Theme class on body and renderer palette
-    const themeClass = `theme-${settings.theme}`;
-    document.body.classList.remove(
-      'theme-default',
-      'theme-dark',
-      'theme-high-contrast',
-      'theme-color-blind',
-    );
-    document.body.classList.add(themeClass);
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme]);
+    inputRef.current?.updateConfig({
+      DAS: settings.das,
+      ARR: settings.arr,
+      allow180: settings.allow180,
+      bindings: settings.bindings,
+    });
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
 
-  // Separate effect for theme -> update renderer and body class
+  // Theme -> update renderer and body class without recreating host
   useEffect(() => {
     document.body.classList.remove(
       'theme-default',
