@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSettings } from '../state/settings';
+import { ControlsPanel } from './ControlsPanel';
 
 export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element {
   const { settings, setSettings } = useSettings();
@@ -28,6 +29,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
     <div style={overlay} role="dialog" aria-modal="true" aria-label="settings">
       <div style={panel}>
         <div style={{ fontSize: 18, marginBottom: 8 }}>Settings</div>
+        <ControlsPanel />
         <div style={row}>
           <label htmlFor="das">DAS (ms)</label>
           <input
