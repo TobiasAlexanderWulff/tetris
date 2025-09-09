@@ -7,15 +7,25 @@ module.exports = {
   extends: [
     'eslint:recommended',
     'plugin:@typescript-eslint/recommended',
-    'plugin:react/recommended',
-    'plugin:react-hooks/recommended',
-    'plugin:jsx-a11y/recommended',
     'prettier'
   ],
-  settings: { react: { version: 'detect' } },
   rules: {
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    'react/react-in-jsx-scope': 'off'
+    '@typescript-eslint/explicit-function-return-type': 'off'
   },
+  overrides: [
+    {
+      files: ['packages/web/**/*.{ts,tsx,js,jsx}'],
+      plugins: ['react', 'jsx-a11y', 'react-hooks'],
+      extends: [
+        'plugin:react/recommended',
+        'plugin:react-hooks/recommended',
+        'plugin:jsx-a11y/recommended'
+      ],
+      settings: { react: { version: 'detect' } },
+      rules: {
+        'react/react-in-jsx-scope': 'off'
+      }
+    }
+  ],
   ignorePatterns: ['dist', 'coverage']
 };
