@@ -8,6 +8,8 @@ import { PauseOverlay } from './PauseOverlay';
 import { SettingsProvider, useSettings } from '../state/settings';
 import { SettingsModal } from './SettingsModal';
 import { StatusToasts, type Toast } from './StatusToasts';
+import { NextQueue } from './NextQueue';
+import { HoldBox } from './HoldBox';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -27,6 +29,7 @@ function GameCanvasInner(): JSX.Element {
   const hostRef = useRef<GameHost | null>(null);
   const inputRef = useRef<KeyboardInput | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
+  const engineRef = useRef<ReturnType<typeof createDefaultEngine> | null>(null);
   const [paused, setPaused] = React.useState(false);
   const [score, setScore] = React.useState(0);
   const [level, setLevel] = React.useState(0);
@@ -34,10 +37,15 @@ function GameCanvasInner(): JSX.Element {
   const [showSettings, setShowSettings] = React.useState(false);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
+  const palette = React.useMemo(() => getPalette(settings.theme), [settings.theme]);
+  const [nextIds, setNextIds] = React.useState<readonly import('@tetris/core').TetrominoId[]>([]);
+  const [holdId, setHoldId] = React.useState<import('@tetris/core').TetrominoId | null>(null);
+  const [canHold, setCanHold] = React.useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const engine = createDefaultEngine();
+    engineRef.current = engine;
     const renderer = new CanvasRenderer(canvas, getPalette(settings.theme));
     rendererRef.current = renderer;
     const input = new KeyboardInput({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
@@ -90,6 +98,23 @@ function GameCanvasInner(): JSX.Element {
     rendererRef.current?.setPalette(getPalette(settings.theme));
   }, [settings.theme]);
 
+  // Poll preview state from snapshot each animation frame (small data)
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const e = engineRef.current;
+      if (e) {
+        const s = e.getSnapshot();
+        setNextIds(s.next);
+        setHoldId(s.hold);
+        setCanHold(s.canHold);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.code === 'Escape') {
@@ -108,6 +133,8 @@ function GameCanvasInner(): JSX.Element {
     <div style={{ position: 'relative' }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
       <HUD score={score} level={level} lines={lines} />
+      <NextQueue next={nextIds} palette={palette} />
+      <HoldBox hold={holdId} canHold={canHold} palette={palette} />
       <StatusToasts toasts={toasts} />
       <PauseOverlay
         visible={paused}
