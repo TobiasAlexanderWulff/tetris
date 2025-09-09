@@ -7,6 +7,7 @@ import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
 import { SettingsProvider, useSettings } from '../state/settings';
 import { SettingsModal } from './SettingsModal';
+import { HelpModal } from './HelpModal';
 import { StatusToasts, type Toast } from './StatusToasts';
 import { NextQueue } from './NextQueue';
 import { HoldBox } from './HoldBox';
@@ -35,6 +36,7 @@ function GameCanvasInner(): JSX.Element {
   const [level, setLevel] = React.useState(0);
   const [lines, setLines] = React.useState(0);
   const [showSettings, setShowSettings] = React.useState(false);
+  const [showHelp, setShowHelp] = React.useState(false);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
   const palette = React.useMemo(() => getPalette(settings.theme), [settings.theme]);
@@ -139,12 +141,14 @@ function GameCanvasInner(): JSX.Element {
       <PauseOverlay
         visible={paused}
         onOpenSettings={() => setShowSettings(true)}
+        onOpenHelp={() => setShowHelp(true)}
         onResume={() => {
           setPaused(false);
           hostRef.current?.setPaused(false);
         }}
       />
       {showSettings ? <SettingsModal onClose={() => setShowSettings(false)} /> : null}
+      {showHelp ? <HelpModal onClose={() => setShowHelp(false)} /> : null}
     </div>
   );
 }
