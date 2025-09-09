@@ -108,7 +108,7 @@ describe('GameHost', () => {
     const y0 = engine.getSnapshot().active!.position.y;
     for (let i = 0; i < 3; i++) {
       now += 16.6667;
-      cb && cb(now);
+      if (cb) (cb as (t: number) => void)(now);
     }
     const y1 = engine.getSnapshot().active!.position.y;
     expect(y1).toBeGreaterThanOrEqual(y0);
@@ -116,7 +116,7 @@ describe('GameHost', () => {
     host.setPaused(true);
     for (let i = 0; i < 5; i++) {
       now += 16.6667;
-      cb && cb(now);
+      if (cb) (cb as (t: number) => void)(now);
     }
     const y2 = engine.getSnapshot().active!.position.y;
     expect(y2).toBe(y1);

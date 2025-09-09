@@ -4,6 +4,8 @@ import { CanvasRenderer } from '../renderer/CanvasRenderer';
 import { KeyboardInput } from '../input/KeyboardInput';
 import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
+import { SettingsProvider, useSettings } from '../state/settings';
+import { SettingsModal } from './SettingsModal';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -11,18 +13,30 @@ import { PauseOverlay } from './PauseOverlay';
  * GameCanvas mounts the game host: engine + renderer + input.
  */
 export function GameCanvas(): JSX.Element {
+  return (
+    <SettingsProvider>
+      <GameCanvasInner />
+    </SettingsProvider>
+  );
+}
+
+function GameCanvasInner(): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hostRef = useRef<GameHost | null>(null);
+  const inputRef = useRef<KeyboardInput | null>(null);
   const [paused, setPaused] = React.useState(false);
   const [score, setScore] = React.useState(0);
   const [level, setLevel] = React.useState(0);
   const [lines, setLines] = React.useState(0);
+  const [showSettings, setShowSettings] = React.useState(false);
+  const { settings } = useSettings();
 
   useEffect(() => {
     const canvas = canvasRef.current!;
     const engine = createDefaultEngine();
     const renderer = new CanvasRenderer(canvas);
-    const input = new KeyboardInput();
+    const input = new KeyboardInput({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
+    inputRef.current = input;
     const host = new GameHost(canvas, engine, renderer, input);
     hostRef.current = host;
     // Initialize HUD from snapshot
@@ -42,7 +56,12 @@ export function GameCanvas(): JSX.Element {
       hostRef.current = null;
       unsubscribe();
     };
-  }, []);
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
+
+  // Apply settings changes to input live
+  useEffect(() => {
+    inputRef.current?.updateConfig({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -64,11 +83,13 @@ export function GameCanvas(): JSX.Element {
       <HUD score={score} level={level} lines={lines} />
       <PauseOverlay
         visible={paused}
+        onOpenSettings={() => setShowSettings(true)}
         onResume={() => {
           setPaused(false);
           hostRef.current?.setPaused(false);
         }}
       />
+      {showSettings ? <SettingsModal onClose={() => setShowSettings(false)} /> : null}
     </div>
   );
 }

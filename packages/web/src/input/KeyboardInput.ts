@@ -9,7 +9,7 @@ import { DEFAULT_INPUT } from './types';
  * hard drop, and hold. Soft drop is emitted as start/stop.
  */
 export class KeyboardInput implements IInputSource {
-  private readonly cfg: InputConfig;
+  private cfg: InputConfig;
   private attached = false;
   private target: HTMLElement | Window | null = null;
 
@@ -34,6 +34,19 @@ export class KeyboardInput implements IInputSource {
   constructor(config?: Partial<InputConfig>) {
     this.cfg = { ...DEFAULT_INPUT, ...config, bindings: config?.bindings ?? DEFAULT_INPUT.bindings };
     for (const b of this.cfg.bindings) this.codeMap.set(b.code, b.action);
+  }
+
+  /** Update input configuration (DAS/ARR/bindings/allow180) at runtime. */
+  updateConfig(patch: Partial<InputConfig>): void {
+    const next: InputConfig = {
+      ...this.cfg,
+      ...patch,
+      bindings: patch.bindings ?? this.cfg.bindings,
+    };
+    // Update fields
+    this.cfg = next;
+    this.codeMap.clear();
+    for (const b of next.bindings) this.codeMap.set(b.code, b.action);
   }
 
   /** Attach listeners to the DOM element or window. */

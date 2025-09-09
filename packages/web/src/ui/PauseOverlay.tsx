@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * PauseOverlay covers the game with a semi-transparent layer and basic controls.
  */
-export function PauseOverlay(props: { visible: boolean; onResume?: () => void }): JSX.Element | null {
+export function PauseOverlay(props: { visible: boolean; onResume?: () => void; onOpenSettings?: () => void }): JSX.Element | null {
   if (!props.visible) return null;
   const overlay: React.CSSProperties = {
     position: 'absolute',
@@ -47,6 +47,18 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void })
           aria-label="resume"
         >
           Resume
+        </div>
+        <div
+          style={{ ...btn, background: '#475569' }}
+          tabIndex={0}
+          onClick={props.onOpenSettings}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') props.onOpenSettings?.();
+          }}
+          role="button"
+          aria-label="open-settings"
+        >
+          Settings
         </div>
       </div>
     </div>
