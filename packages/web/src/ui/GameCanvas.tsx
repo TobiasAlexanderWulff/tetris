@@ -90,7 +90,7 @@ function GameCanvasInner(): JSX.Element {
       hostRef.current = null;
       unsubscribe();
     };
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme, instanceId]);
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme, settings.animations, addToast, instanceId]);
 
   // Apply settings changes to input and theme live
   useEffect(() => {
@@ -182,14 +182,14 @@ function GameCanvasInner(): JSX.Element {
 
 function useToastManager() {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
-  const addToast = (text: string) => {
+  const addToast = React.useCallback((text: string) => {
     const id = Date.now() + Math.random();
     const t: Toast = { id, text };
     setToasts((prev) => [...prev, t]);
     // Remove after 1.8s
-    setTimeout(() => {
+    window.setTimeout(() => {
       setToasts((prev) => prev.filter((x) => x.id !== id));
     }, 1800);
-  };
+  }, []);
   return { toasts, addToast, setToasts };
 }
