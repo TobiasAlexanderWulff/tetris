@@ -7,6 +7,7 @@ export interface Settings {
   allow180: boolean;
   bindings: KeyBinding[];
   audio: { master: number; music: number; sfx: number; muted: boolean };
+  theme: 'default' | 'dark' | 'high-contrast';
 }
 
 const KEY = 'tetris:settings:v1';
@@ -16,6 +17,7 @@ export function defaultSettings(): Settings {
     das: 150,
     arr: 33,
     allow180: false,
+    theme: 'dark',
     bindings: [
       { code: 'ArrowLeft', action: 'Left' },
       { code: 'ArrowRight', action: 'Right' },

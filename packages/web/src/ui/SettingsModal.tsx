@@ -9,10 +9,10 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
     background: 'rgba(0,0,0,0.45)',
     display: 'grid',
     placeItems: 'center',
-    color: '#e2e8f0',
+    color: 'var(--fg, #e2e8f0)',
   };
   const panel: React.CSSProperties = {
-    background: 'rgba(15,15,18,0.96)',
+    background: 'var(--panel-bg, rgba(15,15,18,0.96))',
     padding: 16,
     borderRadius: 8,
     fontFamily:
@@ -21,7 +21,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
   };
   const row: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 };
   const btnRow: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' };
-  const input: React.CSSProperties = { padding: '6px 8px', background: '#0b1220', borderRadius: 6, color: '#e2e8f0' };
+  const input: React.CSSProperties = { padding: '6px 8px', background: '#0b1220', borderRadius: 6, color: 'var(--fg, #e2e8f0)' };
   const btn: React.CSSProperties = { padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer' };
 
   return (
@@ -51,6 +51,21 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
             value={settings.arr}
             onChange={(e) => setSettings({ arr: clampInt(e.target.value, 0, 1000) })}
           />
+        </div>
+        <div style={row}>
+          <label htmlFor="theme">Theme</label>
+          <select
+            id="theme"
+            style={input}
+            value={settings.theme}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setSettings({ theme: e.target.value as 'default' | 'dark' | 'high-contrast' })
+            }
+          >
+            <option value="default">Default</option>
+            <option value="dark">Dark</option>
+            <option value="high-contrast">High Contrast</option>
+          </select>
         </div>
         <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
           <label htmlFor="allow180">Allow 180° Rotation</label>

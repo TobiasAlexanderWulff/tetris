@@ -11,8 +11,8 @@ export function HUD(props: { score: number; level: number; lines: number }): JSX
     top: 12,
     left: 12,
     padding: '8px 10px',
-    background: 'rgba(15,15,18,0.6)',
-    color: '#e2e8f0',
+    background: 'var(--panel-bg, rgba(15,15,18,0.6))',
+    color: 'var(--fg, #e2e8f0)',
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
     fontSize: 14,
     borderRadius: 6,
@@ -38,4 +38,3 @@ export function HUD(props: { score: number; level: number; lines: number }): JSX
     </div>
   );
 }
-

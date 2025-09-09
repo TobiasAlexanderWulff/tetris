@@ -1,0 +1,33 @@
+:root {
+  --bg: #0f0f12;
+  --fg: #e2e8f0;
+  --panel-bg: rgba(15,15,18,0.6);
+}
+
+.theme-default {
+  --bg: #101216;
+  --fg: #e2e8f0;
+  --panel-bg: rgba(15,15,18,0.6);
+}
+
+.theme-dark {
+  --bg: #0f0f12;
+  --fg: #e2e8f0;
+  --panel-bg: rgba(15,15,18,0.6);
+}
+
+.theme-high-contrast {
+  --bg: #000000;
+  --fg: #ffffff;
+  --panel-bg: rgba(0,0,0,0.8);
+}
+
+html, body, #root {
+  height: 100%;
+}
+body {
+  background: var(--bg);
+  color: var(--fg);
+  margin: 0;
+}
+

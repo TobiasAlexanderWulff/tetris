@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { createDefaultEngine, GameHost } from '../game/GameHost';
 import { CanvasRenderer } from '../renderer/CanvasRenderer';
+import { getPalette } from '../renderer/colors';
 import { KeyboardInput } from '../input/KeyboardInput';
 import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
@@ -24,6 +25,7 @@ function GameCanvasInner(): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hostRef = useRef<GameHost | null>(null);
   const inputRef = useRef<KeyboardInput | null>(null);
+  const rendererRef = useRef<CanvasRenderer | null>(null);
   const [paused, setPaused] = React.useState(false);
   const [score, setScore] = React.useState(0);
   const [level, setLevel] = React.useState(0);
@@ -34,7 +36,8 @@ function GameCanvasInner(): JSX.Element {
   useEffect(() => {
     const canvas = canvasRef.current!;
     const engine = createDefaultEngine();
-    const renderer = new CanvasRenderer(canvas);
+    const renderer = new CanvasRenderer(canvas, getPalette(settings.theme));
+    rendererRef.current = renderer;
     const input = new KeyboardInput({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
     inputRef.current = input;
     const host = new GameHost(canvas, engine, renderer, input);
@@ -56,12 +59,23 @@ function GameCanvasInner(): JSX.Element {
       hostRef.current = null;
       unsubscribe();
     };
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme]);
 
-  // Apply settings changes to input live
+  // Apply settings changes to input and theme live
   useEffect(() => {
     inputRef.current?.updateConfig({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
+    // Theme class on body and renderer palette
+    const themeClass = `theme-${settings.theme}`;
+    document.body.classList.remove('theme-default', 'theme-dark', 'theme-high-contrast');
+    document.body.classList.add(themeClass);
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme]);
+
+  // Separate effect for theme -> update renderer and body class
+  useEffect(() => {
+    document.body.classList.remove('theme-default', 'theme-dark', 'theme-high-contrast');
+    document.body.classList.add(`theme-${settings.theme}`);
+    rendererRef.current?.setPalette(getPalette(settings.theme));
+  }, [settings.theme]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {

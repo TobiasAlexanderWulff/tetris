@@ -11,10 +11,10 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
     background: 'rgba(0,0,0,0.45)',
     display: 'grid',
     placeItems: 'center',
-    color: '#e2e8f0',
+    color: 'var(--fg, #e2e8f0)',
   };
   const panel: React.CSSProperties = {
-    background: 'rgba(15,15,18,0.9)',
+    background: 'var(--panel-bg, rgba(15,15,18,0.9))',
     padding: '16px 20px',
     borderRadius: 8,
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',

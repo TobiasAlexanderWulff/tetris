@@ -1,7 +1,7 @@
 import type { Snapshot, Vec2 } from '@tetris/core';
 import { TETROMINO_SHAPES } from '@tetris/core';
 import { computeBoardLayout } from './layout';
-import { colorForCell } from './colors';
+import { colorForCellWithPalette, getPalette, type Palette } from './colors';
 import type { IRenderer } from '../game/types';
 
 /**
@@ -13,9 +13,11 @@ export class CanvasRenderer implements IRenderer {
   private width = 0;
   private height = 0;
   private dpr = 1;
+  private palette: Palette;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(private readonly canvas: HTMLCanvasElement, palette?: Palette) {
     this.ctx = canvas.getContext('2d');
+    this.palette = palette ?? getPalette('dark');
   }
 
   /** Resize the canvas backing store and set DPR transform. */
@@ -33,13 +35,13 @@ export class CanvasRenderer implements IRenderer {
 
     // Background
     ctx.clearRect(0, 0, this.width, this.height);
-    ctx.fillStyle = '#0f0f12';
+    ctx.fillStyle = this.palette.bg;
     ctx.fillRect(0, 0, this.width, this.height);
 
     const layout = computeBoardLayout(this.width, this.height, s.width, s.heightVisible, 0);
 
     // Grid lines
-    ctx.strokeStyle = '#1f2937';
+    ctx.strokeStyle = this.palette.grid;
     ctx.lineWidth = 1;
     for (let x = 0; x <= layout.cols; x++) {
       const px = layout.ox + x * layout.cell + 0.5;
@@ -75,14 +77,14 @@ export class CanvasRenderer implements IRenderer {
     for (let y = s.bufferRows; y < totalRows; y++) {
       for (let x = 0; x < layout.cols; x++) {
         const v = s.board[y * layout.cols + x];
-        if (v) drawCell(x, y - s.bufferRows, colorForCell(v));
+        if (v) drawCell(x, y - s.bufferRows, colorForCellWithPalette(v, this.palette));
       }
     }
 
     // Ghost piece
     if (s.ghost) {
       for (const c of s.ghost as readonly Vec2[]) {
-        if (c.y >= s.bufferRows) drawCell(c.x, c.y - s.bufferRows, '#94a3b8', 0.35);
+        if (c.y >= s.bufferRows) drawCell(c.x, c.y - s.bufferRows, this.palette.ghost, 0.35);
       }
     }
 
@@ -91,7 +93,7 @@ export class CanvasRenderer implements IRenderer {
       const id = s.active.id;
       const rotation = s.active.rotation as 0 | 1 | 2 | 3;
       const offsets = TETROMINO_SHAPES[id][rotation];
-      const color = colorForCell(
+      const color = colorForCellWithPalette(
         id === 'I'
           ? 1
           : id === 'O'
@@ -105,6 +107,7 @@ export class CanvasRenderer implements IRenderer {
           : id === 'J'
           ? 6
           : 7,
+        this.palette,
       );
       for (const c of offsets) {
         const ax = s.active.position.x + c.x;
@@ -117,5 +120,9 @@ export class CanvasRenderer implements IRenderer {
   dispose(): void {
     // no-op
   }
-}
 
+  /** Update the active palette for subsequent draws. */
+  setPalette(palette: Palette): void {
+    this.palette = palette;
+  }
+}
