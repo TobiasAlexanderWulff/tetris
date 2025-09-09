@@ -16,4 +16,10 @@
     "format": "pnpm --filter @tetris/core format && pnpm --filter @tetris/web format",
     "test": "pnpm --filter @tetris/core test --silent && pnpm --filter @tetris/web test --silent"
   }
+  ,
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.5.4"
+    }
+  }
 }
