@@ -1,5 +1,5 @@
 /* @vitest-environment jsdom */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { CanvasRenderer } from './CanvasRenderer';
 
 const makeSnapshot = () => {
@@ -28,6 +28,17 @@ const makeSnapshot = () => {
 describe('CanvasRenderer', () => {
   it('resizes with DPR and draws without throwing', () => {
     const canvas = document.createElement('canvas');
+    // jsdom doesn't implement getContext; provide a minimal stub
+    const ctxStub: Partial<CanvasRenderingContext2D> = {
+      setTransform: () => void 0,
+      clearRect: () => void 0,
+      fillRect: () => void 0,
+      beginPath: () => void 0,
+      moveTo: () => void 0,
+      lineTo: () => void 0,
+      stroke: () => void 0,
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctxStub as CanvasRenderingContext2D);
     const renderer = new CanvasRenderer(canvas);
     renderer.resize(200, 400, 2);
     const snap = makeSnapshot() as unknown as import('@tetris/core').Snapshot;
