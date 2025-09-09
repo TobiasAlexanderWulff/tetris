@@ -7,7 +7,7 @@ export interface Settings {
   allow180: boolean;
   bindings: KeyBinding[];
   audio: { master: number; music: number; sfx: number; muted: boolean };
-  theme: 'default' | 'dark' | 'high-contrast';
+  theme: 'default' | 'dark' | 'high-contrast' | 'color-blind';
   animations: boolean;
 }
 
@@ -45,6 +45,16 @@ export function loadSettings(): Settings {
     if (!merged.bindings.some((b) => b.action === 'Rotate180')) {
       merged.bindings = [...merged.bindings, { code: 'KeyC', action: 'Rotate180' }];
       // Persist migration
+      saveSettings(merged);
+    }
+    // Theme migration: coerce unknown theme values to 'dark'
+    if (
+      merged.theme !== 'default' &&
+      merged.theme !== 'dark' &&
+      merged.theme !== 'high-contrast' &&
+      merged.theme !== 'color-blind'
+    ) {
+      merged.theme = 'dark';
       saveSettings(merged);
     }
     return merged;

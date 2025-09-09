@@ -68,12 +68,15 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
             style={input}
             value={settings.theme}
             onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSettings({ theme: e.target.value as 'default' | 'dark' | 'high-contrast' })
+              setSettings({
+                theme: e.target.value as 'default' | 'dark' | 'high-contrast' | 'color-blind',
+              })
             }
           >
             <option value="default">Default</option>
             <option value="dark">Dark</option>
             <option value="high-contrast">High Contrast</option>
+            <option value="color-blind">Color‑blind Friendly</option>
           </select>
         </div>
         <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>

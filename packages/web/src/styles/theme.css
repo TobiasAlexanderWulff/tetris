@@ -26,6 +26,13 @@
   --overlay-bg: rgba(0,0,0,0.85);
 }
 
+.theme-color-blind {
+  --bg: #0f0f12;
+  --fg: #e2e8f0;
+  --panel-bg: rgba(15,15,18,0.92);
+  --overlay-bg: rgba(0,0,0,0.7);
+}
+
 html, body, #root {
   height: 100%;
 }

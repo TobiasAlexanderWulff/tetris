@@ -97,13 +97,23 @@ function GameCanvasInner(): JSX.Element {
     inputRef.current?.updateConfig({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
     // Theme class on body and renderer palette
     const themeClass = `theme-${settings.theme}`;
-    document.body.classList.remove('theme-default', 'theme-dark', 'theme-high-contrast');
+    document.body.classList.remove(
+      'theme-default',
+      'theme-dark',
+      'theme-high-contrast',
+      'theme-color-blind',
+    );
     document.body.classList.add(themeClass);
   }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.theme]);
 
   // Separate effect for theme -> update renderer and body class
   useEffect(() => {
-    document.body.classList.remove('theme-default', 'theme-dark', 'theme-high-contrast');
+    document.body.classList.remove(
+      'theme-default',
+      'theme-dark',
+      'theme-high-contrast',
+      'theme-color-blind',
+    );
     document.body.classList.add(`theme-${settings.theme}`);
     rendererRef.current?.setPalette(getPalette(settings.theme));
   }, [settings.theme]);
