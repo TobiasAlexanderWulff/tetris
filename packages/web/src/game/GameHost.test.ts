@@ -34,7 +34,7 @@ describe('GameHost', () => {
     document.body.appendChild(container);
     const canvas = document.createElement('canvas');
     container.appendChild(canvas);
-    const engine = createEngine({ gravityCps: 1000 });
+    const engine = createEngine({ gravityTable: { 0: 1000 } });
     const renderer = new TestRenderer();
     const input = new TestInput();
 

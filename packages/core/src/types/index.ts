@@ -44,8 +44,25 @@ export interface EngineConfig {
   readonly allow180: boolean; // enable 180 rotation input
   readonly lockDelayMs: number; // milliseconds of lock delay
   readonly maxLockResets: number; // how many resets allowed
-  readonly gravityCps: number; // cells per second baseline (M1)
+  /**
+   * Gravity speed per level in cells per second. Levels beyond the last key use the last value.
+   */
+  readonly gravityTable: Readonly<Record<number, number>>;
   readonly showNext: number; // next queue display count
+  /**
+   * Scoring configuration for clears, drops, and level progression.
+   */
+  readonly scoring: {
+    readonly single: number;
+    readonly double: number;
+    readonly triple: number;
+    readonly tetris: number;
+    readonly softPerCell: number;
+    readonly hardPerCell: number;
+    readonly b2bMultiplier: number;
+    readonly comboBase: number;
+    readonly levelLines: number;
+  };
 }
 
 /**
@@ -62,6 +79,12 @@ export interface Snapshot {
   readonly canHold: boolean;
   readonly next: readonly TetrominoId[];
   readonly timers: { readonly lockMsLeft: number | null };
+  /** Total score accumulated so far. */
+  readonly score: number;
+  /** Current level. */
+  readonly level: number;
+  /** Total cleared lines. */
+  readonly linesClearedTotal: number;
 }
 
 /** Engine events for observers (UI/audio). */
@@ -71,5 +94,7 @@ export type EngineEvent =
   | { type: 'PieceRotated' }
   | { type: 'HardDropped' }
   | { type: 'Locked' }
-  | { type: 'LinesCleared'; count: number; rows: number[] }
+  | { type: 'LinesCleared'; count: number; rows: number[]; b2b?: boolean; combo?: number }
+  | { type: 'ScoreChanged'; delta: number; score: number }
+  | { type: 'LevelChanged'; level: number }
   | { type: 'GameOver' };

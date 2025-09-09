@@ -21,8 +21,31 @@ export const DEFAULT_CONFIG: EngineConfig = {
   allow180: false,
   lockDelayMs: 500,
   maxLockResets: 15,
-  gravityCps: 1, // 1 cell per second for M1
+  gravityTable: {
+    0: 1.0,
+    1: 1.2,
+    2: 1.5,
+    3: 1.9,
+    4: 2.3,
+    5: 3.0,
+    6: 4.0,
+    7: 5.0,
+    8: 6.5,
+    9: 8.0,
+    10: 10.0,
+  },
   showNext: 5,
+  scoring: {
+    single: 100,
+    double: 300,
+    triple: 500,
+    tetris: 800,
+    softPerCell: 1,
+    hardPerCell: 2,
+    b2bMultiplier: 1.5,
+    comboBase: 50,
+    levelLines: 10,
+  },
 };
 
 /**
@@ -42,6 +65,15 @@ interface InternalState {
   lockResetsUsed: number;
   accumulatorMs: number;
   events: EngineEvent[];
+  // M3 metrics
+  score: number;
+  level: number;
+  linesClearedTotal: number;
+  combo: number; // -1 when not in combo chain
+  b2b: boolean;
+  // Drop counters for current piece
+  softDropCells: number;
+  hardDropCells: number;
 }
 
 /**
@@ -77,6 +109,13 @@ export class Engine {
       lockResetsUsed: 0,
       accumulatorMs: 0,
       events: [],
+      score: 0,
+      level: 0,
+      linesClearedTotal: 0,
+      combo: -1,
+      b2b: false,
+      softDropCells: 0,
+      hardDropCells: 0,
     };
     this.spawnNext();
   }
@@ -112,6 +151,9 @@ export class Engine {
       canHold,
       next: queue.slice(0, this.s.config.showNext),
       timers: { lockMsLeft },
+      score: this.s.score,
+      level: this.s.level,
+      linesClearedTotal: this.s.linesClearedTotal,
     };
   }
 
@@ -174,7 +216,8 @@ export class Engine {
 
   private fixedUpdate(dtMs: number): void {
     // Gravity progression
-    const cps = this.s.softDropping ? this.s.config.gravityCps * 20 : this.s.config.gravityCps;
+    const baseCps = this.lookupGravityCps(this.s.level);
+    const cps = this.s.softDropping ? baseCps * 20 : baseCps;
     const cellsToDrop = this.advanceGravity(dtMs, cps);
     for (let i = 0; i < cellsToDrop; i++) this.gravityStep();
 
@@ -183,6 +226,18 @@ export class Engine {
       this.s.lockMsLeft -= dtMs;
       if (this.s.lockMsLeft <= 0) this.lockActive();
     }
+  }
+
+  private lookupGravityCps(level: number): number {
+    const table = this.s.config.gravityTable;
+    const keys = Object.keys(table)
+      .map((k) => parseInt(k, 10))
+      .sort((a, b) => a - b);
+    let last = 1;
+    for (const k of keys) {
+      if (level >= k) last = table[k]!;
+    }
+    return last;
   }
 
   private advanceGravity(dtMs: number, cps: number): number {
@@ -206,6 +261,7 @@ export class Engine {
       this.s.active = { ...a, position: nextPos };
       // moving off ground cancels lock timer
       this.s.lockMsLeft = null;
+      if (this.s.softDropping) this.s.softDropCells += 1;
       return;
     }
     // Grounded
@@ -244,6 +300,7 @@ export class Engine {
       const pos = { x: a.position.x, y: a.position.y + 1 };
       if (collides(this.s.spec, this.s.grid, a.id, a.rotation, pos)) break;
       a = { ...a, position: pos };
+      this.s.hardDropCells += 1;
     }
     this.s.active = a;
     this.s.events.push({ type: 'HardDropped' });
@@ -285,6 +342,9 @@ export class Engine {
     this.s.lockMsLeft = null;
     this.s.lockResetsUsed = 0;
     if (resetHold) this.s.canHold = true;
+    // reset per-piece drop counters
+    this.s.softDropCells = 0;
+    this.s.hardDropCells = 0;
     this.s.events.push({ type: 'PieceSpawned', id });
   }
 
@@ -340,9 +400,52 @@ export class Engine {
     this.s.lockResetsUsed = 0;
     // Clear lines
     const rows = clearFullRows(this.s.spec, this.s.grid);
-    if (rows.length > 0) this.s.events.push({ type: 'LinesCleared', count: rows.length, rows });
+    // Scoring and metrics
+    this.applyScoring(rows.length);
+    if (rows.length > 0)
+      this.s.events.push({ type: 'LinesCleared', count: rows.length, rows, b2b: this.s.b2b, combo: Math.max(0, this.s.combo) });
     // After a lock, the next spawn should re-enable hold
     this.spawnNext(/*resetHold*/ true);
+  }
+
+  /** Apply scoring, combo, b2b, and level progression for a lock event. */
+  private applyScoring(linesCleared: number): void {
+    const sc = this.s.config.scoring;
+    let base = 0;
+    if (linesCleared === 1) base = sc.single;
+    else if (linesCleared === 2) base = sc.double;
+    else if (linesCleared === 3) base = sc.triple;
+    else if (linesCleared === 4) base = sc.tetris;
+
+    // B2B handling (only for Tetris in M3)
+    if (linesCleared === 4) {
+      base = Math.round(base * (this.s.b2b ? sc.b2bMultiplier : 1));
+      this.s.b2b = true;
+    } else if (linesCleared > 0) {
+      this.s.b2b = false;
+    }
+
+    // Combo handling
+    if (linesCleared > 0) this.s.combo = this.s.combo + 1;
+    else this.s.combo = -1;
+    const comboBonus = this.s.combo > 0 ? sc.comboBase * this.s.combo : 0;
+
+    // Drop bonuses (per piece)
+    const dropBonus = this.s.softDropCells * sc.softPerCell + this.s.hardDropCells * sc.hardPerCell;
+
+    const delta = base + comboBonus + dropBonus;
+    if (delta !== 0) {
+      this.s.score += delta;
+      this.s.events.push({ type: 'ScoreChanged', delta, score: this.s.score });
+    }
+
+    // Lines + level
+    this.s.linesClearedTotal += linesCleared;
+    const newLevel = Math.floor(this.s.linesClearedTotal / sc.levelLines);
+    if (newLevel !== this.s.level) {
+      this.s.level = newLevel;
+      this.s.events.push({ type: 'LevelChanged', level: this.s.level });
+    }
   }
 
   private computeGhost(a: PieceState): Vec2[] {
