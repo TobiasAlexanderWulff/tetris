@@ -7,7 +7,7 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
   const overlay: React.CSSProperties = {
     position: 'absolute',
     inset: 0,
-    background: 'rgba(0,0,0,0.45)',
+    background: 'var(--overlay-bg, rgba(0,0,0,0.7))',
     display: 'grid',
     placeItems: 'center',
     color: 'var(--fg, #e2e8f0)',
@@ -74,4 +74,3 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
     </div>
   );
 }
-

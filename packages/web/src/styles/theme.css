@@ -1,25 +1,29 @@
 :root {
   --bg: #0f0f12;
   --fg: #e2e8f0;
-  --panel-bg: rgba(15,15,18,0.6);
+  --panel-bg: rgba(15,15,18,0.92);
+  --overlay-bg: rgba(0,0,0,0.7);
 }
 
 .theme-default {
   --bg: #101216;
   --fg: #e2e8f0;
-  --panel-bg: rgba(15,15,18,0.6);
+  --panel-bg: rgba(15,15,18,0.92);
+  --overlay-bg: rgba(0,0,0,0.7);
 }
 
 .theme-dark {
   --bg: #0f0f12;
   --fg: #e2e8f0;
-  --panel-bg: rgba(15,15,18,0.6);
+  --panel-bg: rgba(15,15,18,0.92);
+  --overlay-bg: rgba(0,0,0,0.7);
 }
 
 .theme-high-contrast {
   --bg: #000000;
   --fg: #ffffff;
-  --panel-bg: rgba(0,0,0,0.8);
+  --panel-bg: rgba(0,0,0,0.95);
+  --overlay-bg: rgba(0,0,0,0.85);
 }
 
 html, body, #root {
