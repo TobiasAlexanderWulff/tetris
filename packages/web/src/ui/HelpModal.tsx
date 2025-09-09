@@ -35,7 +35,7 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
           <div>Move</div>
           <div>Arrow Left / Arrow Right</div>
           <div>Rotate</div>
-          <div>Arrow Up (CW), Z (CCW), X (CW), 180° if enabled</div>
+          <div>Arrow Up (CW), Z (CCW), X (CW), C (180° for J/L/T)</div>
           <div>Soft Drop</div>
           <div>Arrow Down (faster fall)</div>
           <div>Hard Drop</div>

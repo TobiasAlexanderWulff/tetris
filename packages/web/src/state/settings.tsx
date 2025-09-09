@@ -26,6 +26,7 @@ export function defaultSettings(): Settings {
       { code: 'ArrowUp', action: 'RotateCW' },
       { code: 'KeyZ', action: 'RotateCCW' },
       { code: 'KeyX', action: 'RotateCW' },
+      { code: 'KeyC', action: 'Rotate180' },
       { code: 'Space', action: 'HardDrop' },
       { code: 'ShiftLeft', action: 'Hold' },
       { code: 'ArrowDown', action: 'SoftDrop' },
@@ -39,7 +40,14 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings();
     const parsed = JSON.parse(raw);
-    return { ...defaultSettings(), ...parsed } as Settings;
+    const merged = { ...defaultSettings(), ...parsed } as Settings;
+    // Ensure a 180° binding exists to support updated defaults
+    if (!merged.bindings.some((b) => b.action === 'Rotate180')) {
+      merged.bindings = [...merged.bindings, { code: 'KeyC', action: 'Rotate180' }];
+      // Persist migration
+      saveSettings(merged);
+    }
+    return merged;
   } catch {
     return defaultSettings();
   }

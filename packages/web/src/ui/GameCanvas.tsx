@@ -49,7 +49,7 @@ function GameCanvasInner(): JSX.Element {
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = createDefaultEngine();
+    const engine = createDefaultEngine({ allow180: settings.allow180 });
     engineRef.current = engine;
     const renderer = new CanvasRenderer(canvas, getPalette(settings.theme));
     rendererRef.current = renderer;

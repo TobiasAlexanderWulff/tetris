@@ -1,4 +1,4 @@
-import { createEngine, type Engine, type InputEvent } from '@tetris/core';
+import { createEngine, type Engine, type InputEvent, type EngineConfig } from '@tetris/core';
 import type { IInputSource, IRenderer } from './types';
 
 /**
@@ -111,7 +111,17 @@ export class GameHost {
       this.acc += dt;
       // Poll input and enqueue for this tick batch
       const events: InputEvent[] = this.input.poll(now) || [];
-      for (const e of events) this.engine.enqueueInput(e);
+      // Filter out 180° rotation for pieces where it should be ignored (I, O, S, Z)
+      const activeId = this.engine.getSnapshot().active?.id;
+      for (const e of events) {
+        if (
+          e.type === 'Rotate180' &&
+          (activeId === 'I' || activeId === 'O' || activeId === 'S' || activeId === 'Z')
+        ) {
+          continue;
+        }
+        this.engine.enqueueInput(e);
+      }
 
       // Fixed-step updates
       while (this.acc >= this.TICK) {
@@ -130,6 +140,6 @@ export class GameHost {
 /**
  * Helper to create a default engine instance for the host.
  */
-export function createDefaultEngine() {
-  return createEngine();
+export function createDefaultEngine(config?: Partial<EngineConfig>, seed?: number) {
+  return createEngine(config, seed);
 }

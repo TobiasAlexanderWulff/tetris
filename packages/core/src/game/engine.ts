@@ -204,7 +204,11 @@ export class Engine {
         this.tryRotate(-1);
         break;
       case 'Rotate180':
-        if (this.s.config.allow180) this.tryRotate(+2);
+        // Ignore 180° for pieces where 180 has no visible effect (I, O, S, Z)
+        if (this.s.active && (this.s.active.id === 'I' || this.s.active.id === 'O' || this.s.active.id === 'S' || this.s.active.id === 'Z')) {
+          break;
+        }
+        this.tryRotate(+2);
         break;
       case 'SoftDropStart':
         this.s.softDropping = true;
@@ -288,7 +292,36 @@ export class Engine {
   private tryRotate(delta: number): void {
     const a = this.s.active!;
     const to = applyRotation(a.rotation, delta);
-    const kicks = getKickTable(a.id)[`${a.rotation}-${to}` as const] ?? [{ x: 0, y: 0 }];
+    // Determine kick table; for 180° rotation use a dedicated set of kicks
+    let kicks = getKickTable(a.id)[`${a.rotation}-${to}` as const] ?? undefined;
+    if (!kicks) {
+      // 180° rotation fallbacks (commonly used in fan SRS variants)
+      const basic180 = [
+        { x: 0, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 },
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 1, y: 1 },
+        { x: -1, y: 1 },
+        { x: 1, y: -1 },
+        { x: -1, y: -1 },
+      ] as const;
+      const i180 = [
+        { x: 0, y: 0 },
+        { x: 0, y: 1 },
+        { x: 0, y: -1 },
+        { x: 1, y: 0 },
+        { x: -1, y: 0 },
+        { x: 2, y: 0 },
+        { x: -2, y: 0 },
+        { x: 1, y: 1 },
+        { x: -1, y: 1 },
+        { x: 1, y: -1 },
+        { x: -1, y: -1 },
+      ] as const;
+      kicks = (a.id === 'I' ? (i180 as readonly { x: number; y: number }[]) : (basic180 as readonly { x: number; y: number }[]));
+    }
     for (const k of kicks) {
       const pos = { x: a.position.x + k.x, y: a.position.y + k.y };
       if (!collides(this.s.spec, this.s.grid, a.id, to, pos)) {

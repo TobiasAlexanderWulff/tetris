@@ -56,6 +56,7 @@ export const DEFAULT_INPUT: InputConfig = {
     { code: 'ArrowUp', action: 'RotateCW' },
     { code: 'KeyZ', action: 'RotateCCW' },
     { code: 'KeyX', action: 'RotateCW' },
+    { code: 'KeyC', action: 'Rotate180' },
     { code: 'Space', action: 'HardDrop' },
     { code: 'ShiftLeft', action: 'Hold' },
     { code: 'ArrowDown', action: 'SoftDrop' },
