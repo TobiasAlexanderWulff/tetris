@@ -21,8 +21,15 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
     textAlign: 'center',
     minWidth: 240,
   };
-  const btn: React.CSSProperties = {
+  const btnCol: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
     marginTop: 12,
+    alignItems: 'center',
+  };
+  const btn: React.CSSProperties = {
+    marginTop: 0,
     padding: '8px 12px',
     background: '#334155',
     borderRadius: 6,
@@ -36,41 +43,43 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
           Paused
         </div>
         <div style={{ opacity: 0.9 }}>Press Escape to resume</div>
-        <div
-          style={btn}
-          tabIndex={0}
-          onClick={props.onResume}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') props.onResume?.();
-          }}
-          role="button"
-          aria-label="resume"
-        >
-          Resume
-        </div>
-        <div
-          style={{ ...btn, background: '#475569' }}
-          tabIndex={0}
-          onClick={props.onOpenSettings}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') props.onOpenSettings?.();
-          }}
-          role="button"
-          aria-label="open-settings"
-        >
-          Settings
-        </div>
-        <div
-          style={{ ...btn, background: '#52525b' }}
-          tabIndex={0}
-          onClick={props.onOpenHelp}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') props.onOpenHelp?.();
-          }}
-          role="button"
-          aria-label="open-help"
-        >
-          Help
+        <div style={btnCol}>
+          <div
+            style={btn}
+            tabIndex={0}
+            onClick={props.onResume}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') props.onResume?.();
+            }}
+            role="button"
+            aria-label="resume"
+          >
+            Resume
+          </div>
+          <div
+            style={{ ...btn, background: '#475569' }}
+            tabIndex={0}
+            onClick={props.onOpenSettings}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') props.onOpenSettings?.();
+            }}
+            role="button"
+            aria-label="open-settings"
+          >
+            Settings
+          </div>
+          <div
+            style={{ ...btn, background: '#52525b' }}
+            tabIndex={0}
+            onClick={props.onOpenHelp}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') props.onOpenHelp?.();
+            }}
+            role="button"
+            aria-label="open-help"
+          >
+            Help
+          </div>
         </div>
       </div>
     </div>
