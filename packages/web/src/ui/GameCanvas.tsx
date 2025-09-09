@@ -50,14 +50,40 @@ function GameCanvasInner(): JSX.Element {
   React.useEffect(() => {
     animationsRef.current = settings.animations;
   }, [settings.animations]);
+  // Refs for initial boot values to satisfy hooks lint and avoid resets
+  const initAllow180Ref = React.useRef(settings.allow180);
+  const initThemeRef = React.useRef(settings.theme);
+  const initDasRef = React.useRef(settings.das);
+  const initArrRef = React.useRef(settings.arr);
+  const initBindingsRef = React.useRef(settings.bindings);
+  React.useEffect(() => {
+    initAllow180Ref.current = settings.allow180;
+  }, [settings.allow180]);
+  React.useEffect(() => {
+    initThemeRef.current = settings.theme;
+  }, [settings.theme]);
+  React.useEffect(() => {
+    initDasRef.current = settings.das;
+  }, [settings.das]);
+  React.useEffect(() => {
+    initArrRef.current = settings.arr;
+  }, [settings.arr]);
+  React.useEffect(() => {
+    initBindingsRef.current = settings.bindings;
+  }, [settings.bindings]);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
-    const engine = createDefaultEngine({ allow180: settings.allow180 });
+    const engine = createDefaultEngine({ allow180: initAllow180Ref.current });
     engineRef.current = engine;
-    const renderer = new CanvasRenderer(canvas, getPalette(settings.theme));
+    const renderer = new CanvasRenderer(canvas, getPalette(initThemeRef.current));
     rendererRef.current = renderer;
-    const input = new KeyboardInput({ DAS: settings.das, ARR: settings.arr, allow180: settings.allow180, bindings: settings.bindings });
+    const input = new KeyboardInput({
+      DAS: initDasRef.current,
+      ARR: initArrRef.current,
+      allow180: initAllow180Ref.current,
+      bindings: initBindingsRef.current,
+    });
     inputRef.current = input;
     const host = new GameHost(canvas, engine, renderer, input);
     hostRef.current = host;
