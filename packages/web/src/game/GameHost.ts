@@ -64,6 +64,9 @@ export class GameHost {
       this.acc = 0;
       this.input.reset?.();
       this.input.detach();
+      // Clear any unprocessed inputs inside the engine
+      // Cast to allow optional method presence without coupling to core type in web
+      (this.engine as unknown as { clearPendingInputs?: () => void }).clearPendingInputs?.();
     } else {
       // On resume, make sure we don't process a large dt chunk
       this.input.reset?.();

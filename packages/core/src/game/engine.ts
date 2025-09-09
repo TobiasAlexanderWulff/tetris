@@ -126,6 +126,13 @@ export class Engine {
     this.inputQueue.sort((a, b) => a.at - b.at);
   }
 
+  /**
+   * Clears any queued (unprocessed) input events. Useful when pausing the host.
+   */
+  clearPendingInputs(): void {
+    this.inputQueue.length = 0;
+  }
+
   /** Advance simulation by dtMs using a fixed 16.6667ms tick accumulator. */
   update(dtMs: number): void {
     const TICK_MS = 1000 / 60;
