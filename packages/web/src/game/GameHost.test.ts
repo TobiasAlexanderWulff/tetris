@@ -83,4 +83,43 @@ describe('GameHost', () => {
     expect(renderer.height).toBe(200);
     host.dispose();
   });
+
+  it('pauses updates when setPaused(true)', () => {
+    const container = document.createElement('div');
+    Object.defineProperty(container, 'clientWidth', { get: () => 200 });
+    Object.defineProperty(container, 'clientHeight', { get: () => 400 });
+    document.body.appendChild(container);
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    const engine = createEngine({ gravityTable: { 0: 1000 } });
+    const renderer = new TestRenderer();
+    const input = new TestInput();
+
+    let now = 0;
+    const nowFn = () => now;
+    let cb: ((t: number) => void) | null = null;
+    const raf = (fn: (t: number) => void) => {
+      cb = fn;
+      return 1;
+    };
+    const host = new GameHost(canvas, engine, renderer, input, raf, nowFn);
+    host.start();
+    // advance a few frames
+    const y0 = engine.getSnapshot().active!.position.y;
+    for (let i = 0; i < 3; i++) {
+      now += 16.6667;
+      cb && cb(now);
+    }
+    const y1 = engine.getSnapshot().active!.position.y;
+    expect(y1).toBeGreaterThanOrEqual(y0);
+    // pause and advance more frames
+    host.setPaused(true);
+    for (let i = 0; i < 5; i++) {
+      now += 16.6667;
+      cb && cb(now);
+    }
+    const y2 = engine.getSnapshot().active!.position.y;
+    expect(y2).toBe(y1);
+    host.dispose();
+  });
 });

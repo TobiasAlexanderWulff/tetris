@@ -1,0 +1,54 @@
+import React from 'react';
+
+/**
+ * PauseOverlay covers the game with a semi-transparent layer and basic controls.
+ */
+export function PauseOverlay(props: { visible: boolean; onResume?: () => void }): JSX.Element | null {
+  if (!props.visible) return null;
+  const overlay: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(0,0,0,0.45)',
+    display: 'grid',
+    placeItems: 'center',
+    color: '#e2e8f0',
+  };
+  const panel: React.CSSProperties = {
+    background: 'rgba(15,15,18,0.9)',
+    padding: '16px 20px',
+    borderRadius: 8,
+    fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
+    textAlign: 'center',
+    minWidth: 240,
+  };
+  const btn: React.CSSProperties = {
+    marginTop: 12,
+    padding: '8px 12px',
+    background: '#334155',
+    borderRadius: 6,
+    cursor: 'pointer',
+    display: 'inline-block',
+  };
+  return (
+    <div style={overlay} aria-label="pause-overlay">
+      <div style={panel} role="dialog" aria-modal="true" aria-labelledby="paused-title">
+        <div id="paused-title" style={{ fontSize: 18, marginBottom: 8 }}>
+          Paused
+        </div>
+        <div style={{ opacity: 0.9 }}>Press Escape to resume</div>
+        <div
+          style={btn}
+          tabIndex={0}
+          onClick={props.onResume}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') props.onResume?.();
+          }}
+          role="button"
+          aria-label="resume"
+        >
+          Resume
+        </div>
+      </div>
+    </div>
+  );
+}
