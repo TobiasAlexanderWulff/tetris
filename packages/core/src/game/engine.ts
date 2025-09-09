@@ -132,11 +132,9 @@ export class Engine {
   }
 
   private processInputsUpToTick(): void {
-    // For M1, we process all queued inputs immediately per tick
-    const nowTick = 0; // relative ordering already ensured
+    // For M1, process all queued inputs immediately each tick, ignoring timestamps.
+    // Events are sorted on enqueue for deterministic ordering.
     while (this.inputQueue.length) {
-      const head = this.inputQueue[0];
-      if (!head || head.at > nowTick) break;
       const evt = this.inputQueue.shift()!;
       this.applyInput(evt);
     }
