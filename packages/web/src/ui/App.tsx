@@ -1,5 +1,5 @@
 import React from 'react';
-import { FpsCanvas } from './FpsCanvas';
+import { GameCanvas } from './GameCanvas';
 
 /**
  * Root application component.
@@ -8,10 +8,5 @@ import { FpsCanvas } from './FpsCanvas';
  * on-canvas FPS counter to validate rendering and timing.
  */
 export function App(): JSX.Element {
-  return (
-    <div style={{ display: 'grid', height: '100dvh' }}>
-      <FpsCanvas />
-    </div>
-  );
+  return <div style={{ display: 'grid', height: '100dvh' }}><GameCanvas /></div>;
 }
-
