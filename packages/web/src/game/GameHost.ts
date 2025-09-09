@@ -17,6 +17,7 @@ export class GameHost {
   private readonly TICK = 1000 / 60;
   private paused = false;
   private readonly onResizeBound: () => void;
+  private readonly attachTarget: Window;
 
   /**
    * @param canvas - target canvas element
@@ -35,11 +36,12 @@ export class GameHost {
     private readonly now: () => number = () => performance.now(),
   ) {
     this.onResizeBound = () => this.handleResize();
+    this.attachTarget = window;
   }
 
   /** Start the game loop and attach listeners. */
   start(): void {
-    this.input.attach(window);
+    this.input.attach(this.attachTarget);
     window.addEventListener('resize', this.onResizeBound);
     this.handleResize();
     this.lastTime = this.now();
@@ -57,6 +59,17 @@ export class GameHost {
   /** Pause or resume simulation updates. Render continues while paused. */
   setPaused(p: boolean): void {
     this.paused = p;
+    if (p) {
+      // Drop accumulated time and reset input repeats
+      this.acc = 0;
+      this.input.reset?.();
+      this.input.detach();
+    } else {
+      // On resume, make sure we don't process a large dt chunk
+      this.input.reset?.();
+      this.input.attach(this.attachTarget);
+      this.lastTime = this.now();
+    }
   }
 
   /** Cleanup resources and detach listeners. */
@@ -84,12 +97,15 @@ export class GameHost {
   private tick = (): void => {
     const now = this.now();
     let dt = now - this.lastTime;
-    this.lastTime = now;
     // Clamp to avoid spiral of death on tab restores
     if (dt > 250) dt = 250;
-    this.acc += dt;
 
-    if (!this.paused) {
+    if (this.paused) {
+      // While paused: do not accumulate time or process inputs/updates; keep lastTime in sync
+      this.lastTime = now;
+    } else {
+      this.lastTime = now;
+      this.acc += dt;
       // Poll input and enqueue for this tick batch
       const events: InputEvent[] = this.input.poll(now) || [];
       for (const e of events) this.engine.enqueueInput(e);

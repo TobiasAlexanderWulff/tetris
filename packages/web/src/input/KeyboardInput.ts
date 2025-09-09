@@ -49,6 +49,21 @@ export class KeyboardInput implements IInputSource {
     for (const b of next.bindings) this.codeMap.set(b.code, b.action);
   }
 
+  /** Reset pending inputs and pressed states (used when pausing). */
+  reset(): void {
+    this.pending = [];
+    this.leftPressed = false;
+    this.rightPressed = false;
+    this.softDropPressed = false;
+    this.activeHorizontal = null;
+    this.leftDownAt = 0;
+    this.rightDownAt = 0;
+    this.lastRepeatAt = 0;
+    this.leftStampPending = false;
+    this.rightStampPending = false;
+    this.lastPollNow = 0;
+  }
+
   /** Attach listeners to the DOM element or window. */
   attach(el: HTMLElement | Window): void {
     if (this.attached) return;

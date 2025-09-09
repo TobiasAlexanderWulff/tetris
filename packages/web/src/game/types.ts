@@ -24,5 +24,6 @@ export interface IInputSource {
    * The `nowMs` value is provided for timing-based sources.
    */
   poll(nowMs: number): InputEvent[];
+  /** Optional: reset any pending state (e.g., repeats) */
+  reset?(): void;
 }
-
