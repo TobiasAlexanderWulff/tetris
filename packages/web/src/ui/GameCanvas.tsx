@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { createDefaultEngine, GameHost } from '../game/GameHost';
+import { TETROMINO_SHAPES } from '@tetris/core';
 import { CanvasRenderer } from '../renderer/CanvasRenderer';
 import { getPalette } from '../renderer/colors';
 import { KeyboardInput } from '../input/KeyboardInput';
@@ -179,6 +180,16 @@ function GameCanvasInner(): JSX.Element {
         const s = engine.getSnapshot();
         if (s.active) {
           effectsRef.current?.onPieceSpawned(s.active.id, s.active.position, s.active.rotation, performance.now());
+          // Arm mouse start-drag threshold: 1 cell + half piece width (in cells)
+          const w = pieceWidthCells(s.active.id, s.active.rotation);
+          mouseRef.current?.armStartDragThresholdForPiece(w);
+        }
+      }
+      else if (e.type === 'PieceRotated') {
+        const s = engine.getSnapshot();
+        if (s.active) {
+          const w = pieceWidthCells(s.active.id, s.active.rotation);
+          mouseRef.current?.armStartDragThresholdForPiece(w);
         }
       }
       else if (e.type === 'GameOver') {
@@ -376,6 +387,24 @@ function GameCanvasInner(): JSX.Element {
       />
     </div>
   );
+}
+
+/**
+ * Compute the current piece width in cells for a given id/rotation.
+ */
+function pieceWidthCells(
+  id: import('@tetris/core').TetrominoId,
+  rotation: import('@tetris/core').Rotation,
+): number {
+  const pts = TETROMINO_SHAPES[id][rotation];
+  let minX = Infinity;
+  let maxX = -Infinity;
+  for (const c of pts) {
+    if (c.x < minX) minX = c.x;
+    if (c.x > maxX) maxX = c.x;
+  }
+  const w = maxX - minX + 1;
+  return Math.max(1, w);
 }
 
 function useToastManager() {

@@ -56,6 +56,35 @@ describe('MouseInput', () => {
     expect(prevent).toHaveBeenCalled();
   });
 
+  it('no extra baseline threshold away from edges', () => {
+    const mi = new MouseInput({ enabled: true, allow180: false, deadzonePx: 0 });
+    mi.attach(el);
+    // Piece width matters only for edge guard; set to 3
+    mi.armStartDragThresholdForPiece(3);
+    // Start well inside the board, away from guards
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 10, bubbles: true }));
+    // Move by 25px → 1 step right (20px per cell)
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 125, clientY: 10, bubbles: true }));
+    const evts = mi.poll(1050);
+    expect(evts.map((e) => e.type)).toEqual(['MoveRight']);
+  });
+
+  it('ignores movement until cursor passes board edge + half piece width on re-entry', () => {
+    const mi = new MouseInput({ enabled: true, allow180: false, deadzonePx: 0 });
+    mi.attach(el);
+    // Active piece is 3-wide → half = 1.5 cells = 30px guard from edges
+    mi.armStartDragThresholdForPiece(3);
+    // Move outside left first → triggers out-of-bounds reset
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: -10, clientY: 10, bubbles: true }));
+    // Enter inside but still within half-piece guard (25px < 30px)
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 25, clientY: 10, bubbles: true }));
+    expect(mi.poll(2000)).toEqual([]);
+    // Move deeper inside across guard to 65px; baseline within guard means 40px → 2 steps
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 65, clientY: 10, bubbles: true }));
+    const evts = mi.poll(2010);
+    expect(evts.map((e) => e.type)).toEqual(['MoveRight', 'MoveRight']);
+  });
+
   it('emits 180° on middle click only if allowed', () => {
     const mi = new MouseInput({ enabled: true, allow180: false });
     mi.attach(el);

@@ -42,6 +42,23 @@ export class MouseInput implements IInputSource {
   // Movement tracking
   private lastX: number | null = null;
   private accumDx = 0;
+  /**
+   * Pending activation threshold in CSS pixels before horizontal movement
+   * starts influencing the piece. This is armed by the host (e.g. on piece
+   * spawn or rotation) to require moving the mouse by a minimum distance of
+   * `cell + pieceWidth/2` cells from the original pointer position.
+   */
+  private activationPxRemaining = 0;
+  /** When true, the next pointer movement will initialize activation threshold. */
+  private activationArmed = false;
+  /** Cached threshold in cells to compute px on next move (depends on cell size). */
+  private activationThresholdCells: number | null = null;
+  /** Current active piece width in cells (for edge guard). */
+  private pieceWidthCells: number | null = null;
+  /** Side from which the pointer was last outside the board ('left'|'right'). */
+  private lastOutsideSide: 'left' | 'right' | null = null;
+  /** Active edge guard side after re-entry; disabled once threshold is crossed. */
+  private guardSide: 'left' | 'right' | null = null;
 
   // Buttons state
   private leftDown = false;
@@ -76,6 +93,11 @@ export class MouseInput implements IInputSource {
     this.pending = [];
     this.lastX = null;
     this.accumDx = 0;
+    this.activationPxRemaining = 0;
+    this.activationArmed = false;
+    this.activationThresholdCells = null;
+    this.lastOutsideSide = null;
+    this.guardSide = null;
     this.leftDown = false;
     this.rightDown = false;
     this.middleDown = false;
@@ -144,21 +166,82 @@ export class MouseInput implements IInputSource {
     // Only react if inside canvas bounds; if outside, stop soft drop if active
     if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
       if (this.softActive) {
-        this.queue('SoftDropStop', performance.now());
+        this.queue('SoftDropStop');
         this.softActive = false;
       }
+      // When pointer leaves the playfield, drop horizontal accumulation and
+      // baseline so re-entry doesn't create a huge delta jump.
+      this.lastX = null;
+      this.accumDx = 0;
       return;
     }
-    const cellPx = this.cellWidthPx(rect);
+    const layout = computeBoardLayout(rect.width, rect.height, 10, 20, 0);
+    const cellPx = layout.cell;
     if (!cellPx) return;
+    // Board rect in CSS pixels within the canvas
+    const bx1 = rect.left + layout.ox;
+    const by1 = rect.top + layout.oy;
+    const bx2 = bx1 + layout.bw;
+    const by2 = by1 + layout.bh;
+    // If pointer is outside board area, remember side (left/right), reset baseline and accum.
+    if (x < bx1 || x > bx2 || y < by1 || y > by2) {
+      if (this.softActive) {
+        this.queue('SoftDropStop');
+        this.softActive = false;
+      }
+      // Track horizontal side if outside there; clear if only vertically outside
+      this.lastOutsideSide = x < bx1 ? 'left' : x > bx2 ? 'right' : null;
+      this.lastX = null;
+      this.accumDx = 0;
+      return;
+    }
+    // If we just re-entered from a side, arm guard for that side only.
+    if (!this.guardSide && this.lastOutsideSide) {
+      this.guardSide = this.lastOutsideSide;
+      this.lastOutsideSide = null;
+    }
+    // Initialize baseline on first move after (re)arming; compute activation px.
     if (this.lastX == null) {
       this.lastX = x;
+      if (this.activationArmed) {
+        const cells = this.activationThresholdCells ?? 0;
+        this.activationPxRemaining = Math.max(0, cells * cellPx);
+        this.activationArmed = false;
+        this.accumDx = 0;
+      }
       return;
     }
     const dx = x - this.lastX;
     this.lastX = x;
     this.accumDx += dx;
-    // Apply deadzone
+    // Edge guard: block inward movement until crossing edge + half piece width,
+    // but never block outward movement (towards the edge).
+    if (this.pieceWidthCells && this.guardSide) {
+      const halfPx = (this.pieceWidthCells / 2) * cellPx;
+      const leftGuard = bx1 + halfPx;
+      const rightGuard = bx2 - halfPx;
+      const inward = this.guardSide === 'left' ? dx > 0 : dx < 0;
+      if (
+        inward &&
+        ((this.guardSide === 'left' && x <= leftGuard) || (this.guardSide === 'right' && x >= rightGuard))
+      ) {
+        this.accumDx = 0;
+        return;
+      }
+      // Disable guard once we've crossed the guard line into the board
+      if ((this.guardSide === 'left' && x > leftGuard) || (this.guardSide === 'right' && x < rightGuard)) {
+        this.guardSide = null;
+      }
+    }
+    // If activation threshold is pending, consume it first, ignoring deadzone.
+    if (this.activationPxRemaining > 0) {
+      const abs = Math.abs(this.accumDx);
+      if (abs < this.activationPxRemaining) return;
+      const sign = this.accumDx < 0 ? -1 : 1;
+      this.accumDx = sign * (abs - this.activationPxRemaining);
+      this.activationPxRemaining = 0;
+    }
+    // Apply deadzone (after activation was consumed)
     if (Math.abs(this.accumDx) < (this.cfg.deadzonePx ?? 0)) return;
     // Translate to steps
     const steps = Math.trunc(this.accumDx / cellPx);
@@ -308,5 +391,32 @@ export class MouseInput implements IInputSource {
    */
   setBoundsElement(el: HTMLElement | null): void {
     this.boundsEl = el;
+  }
+
+  /**
+   * Arm an initial drag threshold to delay horizontal movement until the cursor
+   * moved by `1 + pieceWidth/2` cells from the next pointer baseline.
+   * The threshold is computed in pixels using the current canvas cell size on
+   * the next pointer movement.
+   *
+   * Example: for a 20px cell and a 3-cell-wide piece, the threshold is
+   * 20 * (1 + 3/2) = 50px. Only after moving at least 50px horizontally will
+   * the first MoveLeft/MoveRight be emitted.
+   *
+   * Call this on piece spawn and rotation, and it will use the pointer
+   * position at that time as the “origin” (we reset the baseline so the small
+   * incidental mouse jitter won’t move the piece).
+   */
+  armStartDragThresholdForPiece(pieceWidthCells: number): void {
+    // For the desired UX, movement should only begin after crossing
+    // board edge + half piece width. We implement this via an always-on
+    // edge guard and do not add an extra start threshold from baseline.
+    this.activationThresholdCells = null;
+    this.activationPxRemaining = 0;
+    this.activationArmed = false;
+    this.pieceWidthCells = Math.max(1, pieceWidthCells);
+    // Reset baseline to treat current mouse position as origin on next move
+    this.lastX = null;
+    this.accumDx = 0;
   }
 }
