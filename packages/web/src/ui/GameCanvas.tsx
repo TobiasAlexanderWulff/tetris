@@ -12,6 +12,7 @@ import { StatusToasts, type Toast } from './StatusToasts';
 import { NextQueue } from './NextQueue';
 import { HoldBox } from './HoldBox';
 import { GameOverOverlay } from './GameOverOverlay';
+import { StartOverlay } from './StartOverlay';
 import { EffectScheduler } from '../effects/Effects';
 import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
 
@@ -47,6 +48,7 @@ function GameCanvasInner(): JSX.Element {
   const [topHighscores, setTopHighscores] = React.useState<import('../highscore').HighscoreEntry[]>([]);
   const [pb, setPb] = React.useState<number | undefined>(undefined);
   const [instanceId, setInstanceId] = React.useState(0);
+  const [started, setStarted] = React.useState(false);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
   const palette = React.useMemo(() => getPalette(settings.theme), [settings.theme]);
@@ -181,7 +183,9 @@ function GameCanvasInner(): JSX.Element {
       }
     });
     host.start();
-    startTimeRef.current = performance.now();
+    // Start paused until user input (overlay visible)
+    host.setPaused(true);
+    setStarted(false);
     submittedRef.current = false;
     // Load current PB for the mode at start
     try {
@@ -256,6 +260,14 @@ function GameCanvasInner(): JSX.Element {
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
+      // Before start: any key starts the game
+      if (!started) {
+        ev.preventDefault();
+        setStarted(true);
+        hostRef.current?.setPaused(false);
+        startTimeRef.current = performance.now();
+        return;
+      }
       if (ev.code === 'Escape') {
         setPaused((p) => {
           const next = !p;
@@ -266,7 +278,7 @@ function GameCanvasInner(): JSX.Element {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [started]);
 
   return (
     <div
@@ -282,6 +294,7 @@ function GameCanvasInner(): JSX.Element {
       <NextQueue next={nextIds} palette={palette} />
       <HoldBox hold={holdId} canHold={canHold} palette={palette} />
       <StatusToasts toasts={toasts} />
+      <StartOverlay visible={!started && !gameOver} />
       <PauseOverlay
         visible={paused}
         onOpenSettings={() => setShowSettings(true)}
@@ -315,6 +328,7 @@ function GameCanvasInner(): JSX.Element {
           setHighRank(undefined);
           setTopHighscores([]);
           setPaused(false);
+          setStarted(false);
           setInstanceId((n) => n + 1);
         }}
       />

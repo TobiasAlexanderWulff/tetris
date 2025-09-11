@@ -48,3 +48,18 @@ body {
   90% { opacity: 1; }
   100% { opacity: 0; transform: translateY(-6px); }
 }
+
+/* Subtle pulsing text for start prompt */
+@keyframes start-pulse-fade {
+  0% { opacity: 0.25; }
+  50% { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+.start-prompt {
+  animation: start-pulse-fade 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-prompt {
+    animation: none;
+  }
+}
