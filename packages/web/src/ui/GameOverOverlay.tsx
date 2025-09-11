@@ -1,4 +1,5 @@
 import React from 'react';
+import type { HighscoreEntry } from '../highscore';
 
 /**
  * GameOverOverlay shows final stats and provides a Restart action.
@@ -8,6 +9,9 @@ export function GameOverOverlay({
   score,
   level,
   lines,
+  newHigh,
+  rank,
+  top,
   onRestart,
   onClose,
 }: {
@@ -15,6 +19,9 @@ export function GameOverOverlay({
   score: number;
   level: number;
   lines: number;
+  newHigh?: boolean;
+  rank?: number;
+  top?: HighscoreEntry[];
   onRestart: () => void;
   onClose?: () => void;
 }): JSX.Element | null {
@@ -43,6 +50,11 @@ export function GameOverOverlay({
     <div style={overlay} role="dialog" aria-modal="true" aria-label="game-over">
       <div style={panel}>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Game Over</div>
+        {newHigh ? (
+          <div style={{ marginBottom: 8, color: '#22c55e' }}>
+            New Highscore{typeof rank === 'number' ? ` — Rank #${rank}` : ''}!
+          </div>
+        ) : null}
         <div style={statRow}>
           <div>Score</div>
           <div>{score}</div>
@@ -51,6 +63,20 @@ export function GameOverOverlay({
           <div>Lines</div>
           <div>{lines}</div>
         </div>
+        {top && top.length > 0 ? (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Top Scores</div>
+            <div style={{ display: 'grid', gap: 2 }}>
+              {top.slice(0, 5).map((e, i) => (
+                <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 12, opacity: 0.9 }}>
+                  <div style={{ width: 18, textAlign: 'right' }}>{i + 1}.</div>
+                  <div>Score: {e.score}</div>
+                  <div>Level: {e.level}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div style={btnRow}>
           <div
             style={{ ...btn, background: '#475569' }}

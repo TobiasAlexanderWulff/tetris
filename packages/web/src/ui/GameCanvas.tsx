@@ -13,6 +13,7 @@ import { NextQueue } from './NextQueue';
 import { HoldBox } from './HoldBox';
 import { GameOverOverlay } from './GameOverOverlay';
 import { EffectScheduler } from '../effects/Effects';
+import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -41,6 +42,9 @@ function GameCanvasInner(): JSX.Element {
   const [showSettings, setShowSettings] = React.useState(false);
   const [showHelp, setShowHelp] = React.useState(false);
   const [gameOver, setGameOver] = React.useState(false);
+  const [newHigh, setNewHigh] = React.useState(false);
+  const [highRank, setHighRank] = React.useState<number | undefined>(undefined);
+  const [topHighscores, setTopHighscores] = React.useState<import('../highscore').HighscoreEntry[]>([]);
   const [instanceId, setInstanceId] = React.useState(0);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
@@ -48,6 +52,10 @@ function GameCanvasInner(): JSX.Element {
   const [nextIds, setNextIds] = React.useState<readonly import('@tetris/core').TetrominoId[]>([]);
   const [holdId, setHoldId] = React.useState<import('@tetris/core').TetrominoId | null>(null);
   const [canHold, setCanHold] = React.useState(true);
+  // Refs to avoid stale closure inside host effect
+  const scoreRef = React.useRef(0);
+  const levelRef = React.useRef(0);
+  const linesRef = React.useRef(0);
   const animationsRef = React.useRef(settings.animations);
   React.useEffect(() => {
     animationsRef.current = settings.animations;
@@ -85,6 +93,14 @@ function GameCanvasInner(): JSX.Element {
   React.useEffect(() => {
     initBindingsRef.current = settings.bindings;
   }, [settings.bindings]);
+
+  // Initialize highscores storage once
+  useEffect(() => {
+    initHighscores();
+  }, []);
+
+  const startTimeRef = useRef<number>(0);
+  const submittedRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -141,9 +157,29 @@ function GameCanvasInner(): JSX.Element {
         setGameOver(true);
         setPaused(true);
         host.setPaused(true);
+        if (!submittedRef.current) {
+          submittedRef.current = true;
+          const duration = Math.max(0, Math.floor(performance.now() - startTimeRef.current));
+          const res = maybeSubmit({
+            score: scoreRef.current,
+            lines: linesRef.current,
+            level: levelRef.current,
+            durationMs: duration,
+            mode: 'marathon',
+          });
+          setNewHigh(!!res.added);
+          setHighRank(res.rank);
+          try {
+            setTopHighscores(getHighscores('marathon'));
+          } catch {
+            setTopHighscores([]);
+          }
+        }
       }
     });
     host.start();
+    startTimeRef.current = performance.now();
+    submittedRef.current = false;
     return () => {
       host.dispose();
       hostRef.current = null;
@@ -197,6 +233,17 @@ function GameCanvasInner(): JSX.Element {
     return () => cancelAnimationFrame(raf);
   }, []);
 
+  // Keep refs in sync to satisfy hooks lint without restarting host effect
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+  useEffect(() => {
+    levelRef.current = level;
+  }, [level]);
+  useEffect(() => {
+    linesRef.current = lines;
+  }, [lines]);
+
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.code === 'Escape') {
@@ -241,6 +288,9 @@ function GameCanvasInner(): JSX.Element {
         score={score}
         level={level}
         lines={lines}
+        newHigh={newHigh}
+        rank={highRank}
+        top={topHighscores}
         onRestart={() => {
           hostRef.current?.dispose();
           hostRef.current = null;
@@ -251,6 +301,9 @@ function GameCanvasInner(): JSX.Element {
           setHoldId(null);
           setCanHold(true);
           setGameOver(false);
+          setNewHigh(false);
+          setHighRank(undefined);
+          setTopHighscores([]);
           setPaused(false);
           setInstanceId((n) => n + 1);
         }}
