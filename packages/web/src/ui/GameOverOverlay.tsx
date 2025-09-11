@@ -59,11 +59,7 @@ export function GameOverOverlay({
     <div style={overlay} role="dialog" aria-modal="true" aria-label="game-over">
       <div style={panel}>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Game Over</div>
-        {newHigh ? (
-          <div style={{ marginBottom: 8, color: '#22c55e' }}>
-            New Highscore{typeof rank === 'number' ? ` — Rank #${rank}` : ''}!
-          </div>
-        ) : null}
+        {/* Removed duplicate top-line new highscore text */}
         <div style={statRow}>
           <div>Score</div>
           <div>{score}</div>
@@ -72,22 +68,9 @@ export function GameOverOverlay({
           <div>Lines</div>
           <div>{lines}</div>
         </div>
-        {top && top.length > 0 ? (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Top Scores</div>
-            <div style={{ display: 'grid', gap: 2 }}>
-              {top.slice(0, 5).map((e, i) => (
-                <div key={e.id} style={{ display: 'flex', gap: 8, fontSize: 12, opacity: 0.9 }}>
-                  <div style={{ width: 18, textAlign: 'right' }}>{i + 1}.</div>
-                  <div>Score: {e.score}</div>
-                  <div>Level: {e.level}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
+        {/* Removed compact Top Scores list in favor of table below */}
         {newHigh ? (
-          <div style={banner} aria-label="new-highscore">New High Score{typeof rank === 'number' ? ` — #${rank}` : ''}!</div>
+          <div style={banner} aria-label="new-highscore">Score ranked{typeof rank === 'number' ? ` #${rank}` : ''}!</div>
         ) : null}
 
         {top && top.length ? (
