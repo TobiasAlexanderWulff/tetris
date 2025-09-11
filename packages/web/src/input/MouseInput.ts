@@ -32,11 +32,12 @@ export interface MouseConfig {
  */
 export class MouseInput implements IInputSource {
   private attached = false;
-  private target: HTMLElement | null = null;
+  private eventTarget: HTMLElement | Window | null = null;
+  private boundsEl: HTMLElement | null = null;
   private cfg: Required<Omit<MouseConfig, 'sensitivityPxPerCell'>> & { sensitivityPxPerCell?: number };
 
   // Pending one-shot events delivered on next poll
-  private pending: InputEvent['type'][] = [] as any;
+  private pending: InputEvent['type'][] = [];
 
   // Movement tracking
   private lastX: number | null = null;
@@ -72,25 +73,30 @@ export class MouseInput implements IInputSource {
 
   /** Reset transient state and clear any active soft drop. */
   reset(): void {
-    this.pending = [] as any;
+    this.pending = [];
     this.lastX = null;
     this.accumDx = 0;
     this.leftDown = false;
     this.rightDown = false;
     this.middleDown = false;
-    if (this.softActive) this.queue('SoftDropStop', performance.now());
+    if (this.softActive) this.queue('SoftDropStop');
     this.softActive = false;
     if (this.chordTimer !== null) window.clearTimeout(this.chordTimer);
     this.chordTimer = null;
     this.pendingClickAction = null;
   }
 
-  /** Attach listeners to the canvas element. */
+  /**
+   * Attach listeners. Works with either an HTMLElement (preferred) or Window.
+   * When attaching to Window, set a bounds element via setBoundsElement() so
+   * movement can be limited to the canvas area.
+   */
   attach(el: HTMLElement | Window): void {
-    if (!(el instanceof HTMLElement)) return; // mouse input expects an element
     if (this.attached) return;
     this.attached = true;
-    this.target = el;
+    this.eventTarget = el;
+    // If attaching directly to an element, also use it for bounds by default
+    if (el instanceof HTMLElement && !this.boundsEl) this.boundsEl = el;
     el.addEventListener('pointermove', this.onPointerMove as EventListener, { passive: true });
     // Need non-passive for wheel to prevent page scroll
     el.addEventListener('wheel', this.onWheel as EventListener, { passive: false });
@@ -102,8 +108,10 @@ export class MouseInput implements IInputSource {
 
   /** Detach all event listeners. */
   detach(): void {
-    if (!this.attached || !this.target) return;
-    const el = this.target;
+    if (!this.attached || !this.eventTarget) return;
+    const el = this.eventTarget as EventTarget & {
+      removeEventListener: (type: string, listener: EventListenerOrEventListenerObject) => void;
+    };
     el.removeEventListener('pointermove', this.onPointerMove as EventListener);
     el.removeEventListener('wheel', this.onWheel as EventListener);
     el.removeEventListener('pointerdown', this.onPointerDown as EventListener);
@@ -111,7 +119,7 @@ export class MouseInput implements IInputSource {
     el.removeEventListener('pointerleave', this.onPointerLeave as EventListener);
     el.removeEventListener('contextmenu', this.onContextMenu as EventListener);
     this.attached = false;
-    this.target = null;
+    this.eventTarget = null;
   }
 
   /** Poll and drain pending events, assigning the provided timestamp. */
@@ -129,12 +137,18 @@ export class MouseInput implements IInputSource {
   // --- Event handlers ---
 
   private onPointerMove = (ev: PointerEvent): void => {
-    if (!this.cfg.enabled || !this.target) return;
-    const rect = this.target.getBoundingClientRect();
+    if (!this.cfg.enabled || !this.boundsEl) return;
+    const rect = this.boundsEl.getBoundingClientRect();
     const x = ev.clientX;
     const y = ev.clientY;
-    // Only react if inside canvas bounds
-    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) return;
+    // Only react if inside canvas bounds; if outside, stop soft drop if active
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      if (this.softActive) {
+        this.queue('SoftDropStop', performance.now());
+        this.softActive = false;
+      }
+      return;
+    }
     const cellPx = this.cellWidthPx(rect);
     if (!cellPx) return;
     if (this.lastX == null) {
@@ -152,7 +166,7 @@ export class MouseInput implements IInputSource {
     // Cap burst
     const capped = Math.max(-this.cfg.maxBurstSteps, Math.min(this.cfg.maxBurstSteps, steps));
     const dir: InputEvent['type'] = capped > 0 ? 'MoveRight' : 'MoveLeft';
-    for (let i = 0; i < Math.abs(capped); i++) this.queue(dir, performance.now());
+    for (let i = 0; i < Math.abs(capped); i++) this.queue(dir);
     // Keep remainder
     this.accumDx -= steps * cellPx;
   };
@@ -161,7 +175,7 @@ export class MouseInput implements IInputSource {
     if (!this.cfg.enabled) return;
     ev.preventDefault();
     const type: InputEvent['type'] = ev.deltaY < 0 ? 'RotateCCW' : 'RotateCW';
-    this.queue(type, performance.now());
+    this.queue(type);
   };
 
   private onPointerDown = (ev: PointerEvent): void => {
@@ -175,12 +189,23 @@ export class MouseInput implements IInputSource {
       // Right
       this.rightDown = true;
       ev.preventDefault();
-      this.tryChordOrQueue('SoftDropStart');
+      // If left is already held, treat as chord (emit Hold). Otherwise start soft drop immediately.
+      if (this.leftDown) {
+        if (this.softActive) {
+          this.queue('SoftDropStop');
+          this.softActive = false;
+        }
+        this.cancelChordTimer();
+        this.pendingClickAction = null;
+        this.queue('Hold');
+      } else {
+        this.queue('SoftDropStart');
+      }
     } else if (ev.button === 1) {
       // Middle
       this.middleDown = true;
       ev.preventDefault();
-      this.queue('Rotate180', performance.now());
+      this.queue('Rotate180');
     }
   };
 
@@ -194,7 +219,7 @@ export class MouseInput implements IInputSource {
       this.rightDown = false;
       this.resolvePendingSingle('SoftDropStart');
       if (this.softActive) {
-        this.queue('SoftDropStop', performance.now());
+        this.queue('SoftDropStop');
         this.softActive = false;
       }
     } else if (ev.button === 1) {
@@ -202,10 +227,10 @@ export class MouseInput implements IInputSource {
     }
   };
 
-  private onPointerLeave = (_ev: PointerEvent): void => {
+  private onPointerLeave = (): void => {
     // Stop soft drop if pointer leaves canvas while active
     if (this.softActive) {
-      this.queue('SoftDropStop', performance.now());
+      this.queue('SoftDropStop');
       this.softActive = false;
     }
     this.lastX = null;
@@ -225,7 +250,7 @@ export class MouseInput implements IInputSource {
     return layout.cell || null;
   }
 
-  private queue(type: InputEvent['type'], _at: number): void {
+  private queue(type: InputEvent['type']): void {
     // At timestamp assigned during poll
     if (type === 'Rotate180' && !this.cfg.allow180) return;
     if (!this.cfg.enabled) return;
@@ -240,12 +265,12 @@ export class MouseInput implements IInputSource {
     if (otherDown) {
       // If soft drop was about to start, cancel its effect
       if (action === 'HardDrop' && this.softActive) {
-        this.queue('SoftDropStop', performance.now());
+        this.queue('SoftDropStop');
         this.softActive = false;
       }
       this.cancelChordTimer();
       this.pendingClickAction = null;
-      this.queue('Hold', performance.now());
+      this.queue('Hold');
       return;
     }
 
@@ -254,7 +279,7 @@ export class MouseInput implements IInputSource {
     this.cancelChordTimer();
     this.chordTimer = window.setTimeout(() => {
       if (this.pendingClickAction) {
-        this.queue(this.pendingClickAction, performance.now());
+        this.queue(this.pendingClickAction);
         this.pendingClickAction = null;
       }
       this.cancelChordTimer();
@@ -276,5 +301,12 @@ export class MouseInput implements IInputSource {
       this.chordTimer = null;
     }
   }
-}
 
+  /**
+   * Provide the element used to compute bounds and cell size (typically the canvas).
+   * Call this before the host starts polling, e.g., right after constructing MouseInput.
+   */
+  setBoundsElement(el: HTMLElement | null): void {
+    this.boundsEl = el;
+  }
+}

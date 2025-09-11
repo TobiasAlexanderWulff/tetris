@@ -32,6 +32,52 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
       <div style={panel}>
         <div style={{ fontSize: 18, marginBottom: 8 }}>Settings</div>
         <ControlsPanel />
+        {/* Mouse controls */}
+        <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
+          <label htmlFor="mouseControls">Enable Mouse Controls</label>
+          <input
+            id="mouseControls"
+            type="checkbox"
+            checked={settings.mouseControls}
+            onChange={(e) => setSettings({ mouseControls: e.target.checked })}
+          />
+        </div>
+        {settings.mouseControls ? (
+          <>
+            <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
+              <label htmlFor="mouseAutoSens">Auto Mouse Sensitivity</label>
+              <input
+                id="mouseAutoSens"
+                type="checkbox"
+                checked={settings.mouseSensitivityPxPerCell === 'auto'}
+                onChange={(e) =>
+                  setSettings({
+                    mouseSensitivityPxPerCell: e.target.checked
+                      ? 'auto'
+                      : Math.max(8, typeof settings.mouseSensitivityPxPerCell === 'number' ? settings.mouseSensitivityPxPerCell : 24),
+                  })
+                }
+              />
+            </div>
+            {settings.mouseSensitivityPxPerCell !== 'auto' ? (
+              <div style={row}>
+                <label htmlFor="mouseSens">Mouse Sensitivity (px/cell)</label>
+                <input
+                  id="mouseSens"
+                  style={input}
+                  type="number"
+                  min={4}
+                  max={128}
+                  step={1}
+                  value={typeof settings.mouseSensitivityPxPerCell === 'number' ? settings.mouseSensitivityPxPerCell : 24}
+                  onChange={(e) =>
+                    setSettings({ mouseSensitivityPxPerCell: clampInt(e.target.value, 4, 128) })
+                  }
+                />
+              </div>
+            ) : null}
+          </>
+        ) : null}
         <div style={row}>
           <label htmlFor="das">DAS (ms)</label>
           <input

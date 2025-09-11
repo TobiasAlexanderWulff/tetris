@@ -1,5 +1,18 @@
+/* @vitest-environment jsdom */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MouseInput } from './MouseInput';
+
+// Minimal PointerEvent polyfill for jsdom
+// JSDOM may not provide PointerEvent in this environment
+if (typeof (globalThis as unknown as { PointerEvent?: unknown }).PointerEvent === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-expect-error - define global PointerEvent for tests
+  globalThis.PointerEvent = class PointerEvent extends MouseEvent {
+    constructor(type: string, eventInitDict?: MouseEventInit) {
+      super(type, eventInitDict);
+    }
+  } as unknown as typeof PointerEvent;
+}
 
 function makeCanvas(): HTMLDivElement {
   const el = document.createElement('div');
@@ -75,4 +88,3 @@ describe('MouseInput', () => {
     expect(evts.map((e) => e.type)).toEqual(['Hold']);
   });
 });
-

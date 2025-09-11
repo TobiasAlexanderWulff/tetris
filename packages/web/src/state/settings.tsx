@@ -9,6 +9,10 @@ export interface Settings {
   audio: { master: number; music: number; sfx: number; muted: boolean };
   theme: 'default' | 'dark' | 'high-contrast' | 'color-blind';
   animations: boolean;
+  /** Enable mouse-only input controls. */
+  mouseControls: boolean;
+  /** Pixels-per-cell sensitivity or 'auto' to derive from layout. */
+  mouseSensitivityPxPerCell: number | 'auto';
 }
 
 const KEY = 'tetris:settings:v1';
@@ -32,6 +36,8 @@ export function defaultSettings(): Settings {
     allow180: false,
     theme: 'dark',
     animations: animationsDefault,
+    mouseControls: true,
+    mouseSensitivityPxPerCell: 'auto',
     bindings: [
       { code: 'ArrowLeft', action: 'Left' },
       { code: 'ArrowRight', action: 'Right' },
@@ -51,8 +57,9 @@ export function loadSettings(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings();
-    const parsed = JSON.parse(raw);
-    const merged = { ...defaultSettings(), ...parsed } as Settings;
+    const parsed: unknown = JSON.parse(raw);
+    const parsedObj: Record<string, unknown> = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+    const merged = { ...defaultSettings(), ...(parsedObj as Partial<Settings>) } as Settings;
     // Ensure a 180° binding exists to support updated defaults
     if (!merged.bindings.some((b) => b.action === 'Rotate180')) {
       merged.bindings = [...merged.bindings, { code: 'KeyC', action: 'Rotate180' }];
@@ -67,6 +74,15 @@ export function loadSettings(): Settings {
       merged.theme !== 'color-blind'
     ) {
       merged.theme = 'dark';
+      saveSettings(merged);
+    }
+    // Mouse settings migration defaults
+    if (!('mouseControls' in parsedObj)) {
+      merged.mouseControls = true;
+      saveSettings(merged);
+    }
+    if (!('mouseSensitivityPxPerCell' in parsedObj)) {
+      merged.mouseSensitivityPxPerCell = 'auto';
       saveSettings(merged);
     }
     return merged;

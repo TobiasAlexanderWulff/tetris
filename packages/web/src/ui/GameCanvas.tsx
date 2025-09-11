@@ -3,6 +3,8 @@ import { createDefaultEngine, GameHost } from '../game/GameHost';
 import { CanvasRenderer } from '../renderer/CanvasRenderer';
 import { getPalette } from '../renderer/colors';
 import { KeyboardInput } from '../input/KeyboardInput';
+import { MouseInput } from '../input/MouseInput';
+import { MultiInput } from '../input/MultiInput';
 import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
 import { SettingsProvider, useSettings } from '../state/settings';
@@ -32,7 +34,9 @@ export function GameCanvas(): JSX.Element {
 function GameCanvasInner(): JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hostRef = useRef<GameHost | null>(null);
-  const inputRef = useRef<KeyboardInput | null>(null);
+  const kbRef = useRef<KeyboardInput | null>(null);
+  const mouseRef = useRef<MouseInput | null>(null);
+  const multiRef = useRef<MultiInput | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const engineRef = useRef<ReturnType<typeof createDefaultEngine> | null>(null);
   const effectsRef = useRef<EffectScheduler | null>(null);
@@ -81,6 +85,8 @@ function GameCanvasInner(): JSX.Element {
   const initDasRef = React.useRef(settings.das);
   const initArrRef = React.useRef(settings.arr);
   const initBindingsRef = React.useRef(settings.bindings);
+  const initMouseControlsRef = React.useRef(settings.mouseControls);
+  const initMouseSensitivityRef = React.useRef(settings.mouseSensitivityPxPerCell);
   React.useEffect(() => {
     initAllow180Ref.current = settings.allow180;
   }, [settings.allow180]);
@@ -96,6 +102,12 @@ function GameCanvasInner(): JSX.Element {
   React.useEffect(() => {
     initBindingsRef.current = settings.bindings;
   }, [settings.bindings]);
+  React.useEffect(() => {
+    initMouseControlsRef.current = settings.mouseControls;
+  }, [settings.mouseControls]);
+  React.useEffect(() => {
+    initMouseSensitivityRef.current = settings.mouseSensitivityPxPerCell;
+  }, [settings.mouseSensitivityPxPerCell]);
 
   // Initialize highscores storage once
   useEffect(() => {
@@ -117,14 +129,27 @@ function GameCanvasInner(): JSX.Element {
     effects.setAllowParticles(!isMobile && !reducedMotion);
     effectsRef.current = effects;
     renderer.setEffects(effects);
-    const input = new KeyboardInput({
+    const kb = new KeyboardInput({
       DAS: initDasRef.current,
       ARR: initArrRef.current,
       allow180: initAllow180Ref.current,
       bindings: initBindingsRef.current,
     });
-    inputRef.current = input;
-    const host = new GameHost(canvas, engine, renderer, input);
+    kbRef.current = kb;
+    const mouse = new MouseInput({
+      enabled: initMouseControlsRef.current,
+      allow180: initAllow180Ref.current,
+      sensitivityPxPerCell:
+        initMouseSensitivityRef.current === 'auto' ? undefined : (initMouseSensitivityRef.current as number),
+    });
+    // Set bounds element so MouseInput knows the canvas rect
+    mouse.setBoundsElement(canvas);
+    // Enable/disable and sensitivity based on current settings
+    // no-op: Mouse already initialized with settings above
+    mouseRef.current = mouse;
+    const multi = new MultiInput([kb, mouse]);
+    multiRef.current = multi;
+    const host = new GameHost(canvas, engine, renderer, multi);
     hostRef.current = host;
     // Initialize HUD from snapshot
     const s0 = engine.getSnapshot();
@@ -205,13 +230,19 @@ function GameCanvasInner(): JSX.Element {
 
   // Apply settings changes to input live (no restart)
   useEffect(() => {
-    inputRef.current?.updateConfig({
+    kbRef.current?.updateConfig({
       DAS: settings.das,
       ARR: settings.arr,
       allow180: settings.allow180,
       bindings: settings.bindings,
     });
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
+    mouseRef.current?.updateConfig({
+      allow180: settings.allow180,
+      enabled: settings.mouseControls,
+      sensitivityPxPerCell:
+        settings.mouseSensitivityPxPerCell === 'auto' ? undefined : settings.mouseSensitivityPxPerCell,
+    });
+  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.mouseControls, settings.mouseSensitivityPxPerCell]);
 
   // Update effects enablement when animations toggle changes
   useEffect(() => {

@@ -45,6 +45,21 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
           <div>Pause</div>
           <div>Escape (open Pause/Settings/Help)</div>
         </div>
+        <div style={h}>Mouse Controls</div>
+        <div style={dl}>
+          <div>Move</div>
+          <div>Mouse move horizontally over board</div>
+          <div>Rotate</div>
+          <div>Wheel up (CCW), wheel down (CW)</div>
+          <div>180°</div>
+          <div>Middle click (if enabled)</div>
+          <div>Soft Drop</div>
+          <div>Right click and hold</div>
+          <div>Hard Drop</div>
+          <div>Left click</div>
+          <div>Hold</div>
+          <div>Left + Right click together</div>
+        </div>
         <div style={h}>Scoring Basics</div>
         <div>
           Single = 100, Double = 300, Triple = 500, Tetris = 800. Drop bonuses: soft +1/cell, hard +2/cell.
