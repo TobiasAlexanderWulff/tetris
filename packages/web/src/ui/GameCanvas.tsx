@@ -12,6 +12,7 @@ import { StatusToasts, type Toast } from './StatusToasts';
 import { NextQueue } from './NextQueue';
 import { HoldBox } from './HoldBox';
 import { GameOverOverlay } from './GameOverOverlay';
+import { EffectScheduler } from '../effects/Effects';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -32,6 +33,7 @@ function GameCanvasInner(): JSX.Element {
   const inputRef = useRef<KeyboardInput | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const engineRef = useRef<ReturnType<typeof createDefaultEngine> | null>(null);
+  const effectsRef = useRef<EffectScheduler | null>(null);
   const [paused, setPaused] = React.useState(false);
   const [score, setScore] = React.useState(0);
   const [level, setLevel] = React.useState(0);
@@ -50,6 +52,18 @@ function GameCanvasInner(): JSX.Element {
   React.useEffect(() => {
     animationsRef.current = settings.animations;
   }, [settings.animations]);
+  // Track reduced motion and mobile to gate optional particles
+  const reducedMotion = React.useMemo(() => {
+    try {
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      return false;
+    }
+  }, []);
+  const isMobile = React.useMemo(() => {
+    if (typeof navigator === 'undefined') return false;
+    return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }, []);
   // Refs for initial boot values to satisfy hooks lint and avoid resets
   const initAllow180Ref = React.useRef(settings.allow180);
   const initThemeRef = React.useRef(settings.theme);
@@ -78,6 +92,12 @@ function GameCanvasInner(): JSX.Element {
     engineRef.current = engine;
     const renderer = new CanvasRenderer(canvas, getPalette(initThemeRef.current));
     rendererRef.current = renderer;
+    // Effects setup
+    const effects = new EffectScheduler();
+    effects.setEnabled(animationsRef.current);
+    effects.setAllowParticles(!isMobile && !reducedMotion);
+    effectsRef.current = effects;
+    renderer.setEffects(effects);
     const input = new KeyboardInput({
       DAS: initDasRef.current,
       ARR: initArrRef.current,
@@ -107,6 +127,15 @@ function GameCanvasInner(): JSX.Element {
           if (typeof e.combo === 'number' && e.combo > 0) msgs.push(`Combo x${e.combo + 1}`);
           for (const m of msgs) addToast(m);
         }
+        // Trigger line-flash (and optional particles) via effects
+        effectsRef.current?.onLinesCleared(e.rows, performance.now());
+      }
+      else if (e.type === 'PieceSpawned') {
+        // Read snapshot to know spawn position/rotation
+        const s = engine.getSnapshot();
+        if (s.active) {
+          effectsRef.current?.onPieceSpawned(s.active.id, s.active.position, s.active.rotation, performance.now());
+        }
       }
       else if (e.type === 'GameOver') {
         setGameOver(true);
@@ -118,9 +147,11 @@ function GameCanvasInner(): JSX.Element {
     return () => {
       host.dispose();
       hostRef.current = null;
+      renderer.setEffects(null);
+      effectsRef.current = null;
       unsubscribe();
     };
-  }, [addToast, instanceId]);
+  }, [addToast, instanceId, isMobile, reducedMotion]);
 
   // Apply settings changes to input live (no restart)
   useEffect(() => {
@@ -131,6 +162,11 @@ function GameCanvasInner(): JSX.Element {
       bindings: settings.bindings,
     });
   }, [settings.das, settings.arr, settings.allow180, settings.bindings]);
+
+  // Update effects enablement when animations toggle changes
+  useEffect(() => {
+    effectsRef.current?.setEnabled(settings.animations);
+  }, [settings.animations]);
 
   // Theme -> update renderer and body class without recreating host
   useEffect(() => {

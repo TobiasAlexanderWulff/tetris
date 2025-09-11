@@ -13,13 +13,25 @@ export interface Settings {
 
 const KEY = 'tetris:settings:v1';
 
+/**
+ * Compute default settings, honoring system preferences such as reduced motion.
+ */
 export function defaultSettings(): Settings {
+  // Respect prefers-reduced-motion by disabling animations by default.
+  let animationsDefault = true;
+  try {
+    if (typeof window !== 'undefined' && 'matchMedia' in window) {
+      animationsDefault = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+  } catch {
+    // ignore
+  }
   return {
     das: 150,
     arr: 33,
     allow180: false,
     theme: 'dark',
-    animations: true,
+    animations: animationsDefault,
     bindings: [
       { code: 'ArrowLeft', action: 'Left' },
       { code: 'ArrowRight', action: 'Right' },

@@ -3,6 +3,7 @@ import { TETROMINO_SHAPES } from '@tetris/core';
 import { computeBoardLayout } from './layout';
 import { colorForCellWithPalette, getPalette, type Palette } from './colors';
 import type { IRenderer } from '../game/types';
+import type { EffectScheduler } from '../effects/Effects';
 
 /**
  * CanvasRenderer draws a Snapshot onto a CanvasRenderingContext2D at 60 FPS.
@@ -14,6 +15,7 @@ export class CanvasRenderer implements IRenderer {
   private height = 0;
   private dpr = 1;
   private palette: Palette;
+  private effects: EffectScheduler | null = null;
 
   constructor(private readonly canvas: HTMLCanvasElement, palette?: Palette) {
     this.ctx = canvas.getContext('2d');
@@ -115,6 +117,10 @@ export class CanvasRenderer implements IRenderer {
         if (ay >= s.bufferRows) drawCell(ax, ay - s.bufferRows, color);
       }
     }
+
+    // Effects overlay (line flash, spawn pop, particles) in same pass
+    // Use performance.now() as time source for simplicity
+    this.effects?.render(ctx, s, this.palette, performance.now());
   }
 
   dispose(): void {
@@ -124,5 +130,13 @@ export class CanvasRenderer implements IRenderer {
   /** Update the active palette for subsequent draws. */
   setPalette(palette: Palette): void {
     this.palette = palette;
+  }
+
+  /**
+   * Attach an effects scheduler for overlay animations.
+   * Pass null to remove effects.
+   */
+  setEffects(effects: EffectScheduler | null): void {
+    this.effects = effects;
   }
 }
