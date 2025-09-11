@@ -4,8 +4,8 @@ import React from 'react';
  * HUD displays core gameplay metrics: score, level, and total lines.
  * It is designed to be lightweight and update from parent state.
  */
-export function HUD(props: { score: number; level: number; lines: number }): JSX.Element {
-  const { score, level, lines } = props;
+export function HUD(props: { score: number; level: number; lines: number; pb?: number }): JSX.Element {
+  const { score, level, lines, pb } = props;
   const boxStyle: React.CSSProperties = {
     position: 'absolute',
     top: 12,
@@ -23,6 +23,12 @@ export function HUD(props: { score: number; level: number; lines: number }): JSX
 
   return (
     <div style={boxStyle} aria-label="hud">
+      {typeof pb === 'number' ? (
+        <div style={row}>
+          <span style={label}>Highscore:</span>
+          <span>{pb}</span>
+        </div>
+      ) : null}
       <div style={row}>
         <span style={label}>Score:</span>
         <span>{score}</span>

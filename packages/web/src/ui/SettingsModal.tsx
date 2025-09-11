@@ -130,7 +130,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
                 const json = prompt('Paste highscores JSON to import:');
                 if (!json) return;
                 const strategy = confirm('OK = Merge, Cancel = Replace') ? 'merge' : 'replace';
-                const res = importHighscores(json, strategy as any);
+                const res = importHighscores(json, strategy);
                 alert(res.ok ? `Imported ${res.imported} entries.` : 'Import failed.');
               }}
             >

@@ -45,6 +45,7 @@ function GameCanvasInner(): JSX.Element {
   const [newHigh, setNewHigh] = React.useState(false);
   const [highRank, setHighRank] = React.useState<number | undefined>(undefined);
   const [topHighscores, setTopHighscores] = React.useState<import('../highscore').HighscoreEntry[]>([]);
+  const [pb, setPb] = React.useState<number | undefined>(undefined);
   const [instanceId, setInstanceId] = React.useState(0);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
@@ -170,7 +171,9 @@ function GameCanvasInner(): JSX.Element {
           setNewHigh(!!res.added);
           setHighRank(res.rank);
           try {
-            setTopHighscores(getHighscores('marathon'));
+            const top = getHighscores('marathon');
+            setTopHighscores(top);
+            setPb(top.length ? top[0].score : undefined);
           } catch {
             setTopHighscores([]);
           }
@@ -180,6 +183,13 @@ function GameCanvasInner(): JSX.Element {
     host.start();
     startTimeRef.current = performance.now();
     submittedRef.current = false;
+    // Load current PB for the mode at start
+    try {
+      const top = getHighscores('marathon');
+      setPb(top.length ? top[0].score : undefined);
+    } catch {
+      setPb(undefined);
+    }
     return () => {
       host.dispose();
       hostRef.current = null;
@@ -268,7 +278,7 @@ function GameCanvasInner(): JSX.Element {
       }}
     >
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
-      <HUD score={score} level={level} lines={lines} />
+      <HUD score={score} level={level} lines={lines} pb={pb} />
       <NextQueue next={nextIds} palette={palette} />
       <HoldBox hold={holdId} canHold={canHold} palette={palette} />
       <StatusToasts toasts={toasts} />

@@ -14,5 +14,10 @@ describe('HUD', () => {
     expect(screen.getByText('Lines:')).toBeTruthy();
     expect(screen.getByText('42')).toBeTruthy();
   });
-});
 
+  it('renders PB when provided', () => {
+    render(<HUD score={0} level={0} lines={0} pb={999} />);
+    expect(screen.getByText('Highscore:')).toBeTruthy();
+    expect(screen.getByText('999')).toBeTruthy();
+  });
+});
