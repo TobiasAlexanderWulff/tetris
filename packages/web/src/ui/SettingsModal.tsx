@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSettings } from '../state/settings';
+import { exportHighscores, importHighscores, clearHighscores } from '../highscore';
 import { ControlsPanel } from './ControlsPanel';
 
 export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element {
@@ -22,6 +23,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
   };
   const row: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 };
   const btnRow: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' };
+  const section: React.CSSProperties = { marginTop: 16 };
   const input: React.CSSProperties = { padding: '6px 8px', background: '#0b1220', borderRadius: 6, color: 'var(--fg, #e2e8f0)' };
   const btn: React.CSSProperties = { padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer' };
 
@@ -103,6 +105,49 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
             onChange={(e) => setSettings({ audio: { ...settings.audio, master: Number(e.target.value) } })}
           />
         </div>
+        <div style={section}>
+          <div style={{ fontSize: 16, marginBottom: 8 }}>Highscores</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              style={btn}
+              aria-label="export-highscores"
+              onClick={() => {
+                try {
+                  const data = exportHighscores();
+                  void navigator.clipboard?.writeText?.(data);
+                  alert('Highscores copied to clipboard as JSON.');
+                } catch (e) {
+                  alert('Failed to export highscores.');
+                }
+              }}
+            >
+              Export (copy)
+            </button>
+            <button
+              style={btn}
+              aria-label="import-highscores"
+              onClick={() => {
+                const json = prompt('Paste highscores JSON to import:');
+                if (!json) return;
+                const strategy = confirm('OK = Merge, Cancel = Replace') ? 'merge' : 'replace';
+                const res = importHighscores(json, strategy as any);
+                alert(res.ok ? `Imported ${res.imported} entries.` : 'Import failed.');
+              }}
+            >
+              Import
+            </button>
+            <button
+              style={{ ...btn, background: '#7f1d1d' }}
+              aria-label="clear-highscores"
+              onClick={() => {
+                if (confirm('Clear all highscores? This cannot be undone.')) clearHighscores();
+              }}
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+
         <div style={btnRow}>
           <div
             style={btn}

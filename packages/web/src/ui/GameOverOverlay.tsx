@@ -1,5 +1,6 @@
 import React from 'react';
 import type { HighscoreEntry } from '../highscore';
+import { HighscoreTable } from './HighscoreTable';
 
 /**
  * GameOverOverlay shows final stats and provides a Restart action.
@@ -45,6 +46,14 @@ export function GameOverOverlay({
   const statRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 };
   const btn: React.CSSProperties = { padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer' };
   const btnRow: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' };
+  const banner: React.CSSProperties = {
+    background: '#14532d',
+    color: '#ecfdf5',
+    borderRadius: 6,
+    padding: '6px 8px',
+    margin: '8px 0',
+    fontWeight: 600,
+  };
 
   return (
     <div style={overlay} role="dialog" aria-modal="true" aria-label="game-over">
@@ -77,6 +86,17 @@ export function GameOverOverlay({
             </div>
           </div>
         ) : null}
+        {newHigh ? (
+          <div style={banner} aria-label="new-highscore">New High Score{typeof rank === 'number' ? ` — #${rank}` : ''}!</div>
+        ) : null}
+
+        {top && top.length ? (
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>Top Highscores</div>
+            <HighscoreTable entries={top} max={10} />
+          </div>
+        ) : null}
+
         <div style={btnRow}>
           <div
             style={{ ...btn, background: '#475569' }}
