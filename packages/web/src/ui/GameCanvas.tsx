@@ -276,8 +276,19 @@ function GameCanvasInner(): JSX.Element {
         });
       }
     };
+    const onPointer = () => {
+      if (!started) {
+        setStarted(true);
+        hostRef.current?.setPaused(false);
+        startTimeRef.current = performance.now();
+      }
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onPointer);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onPointer);
+    };
   }, [started]);
 
   return (
