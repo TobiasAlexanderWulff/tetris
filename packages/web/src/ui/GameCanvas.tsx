@@ -20,7 +20,7 @@ import { StartOverlay } from './StartOverlay';
 import { EffectScheduler } from '../effects/Effects';
 import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
 import { useAudio } from '../audio/AudioProvider';
-import { attachAudioToEngine } from '../audio/events';
+import { audioEventHandler } from '../audio/events';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -163,10 +163,10 @@ function GameCanvasInner(): JSX.Element {
     setScore(s0.score);
     setLevel(s0.level);
     setLines(s0.linesClearedTotal);
-    // Audio mapping (SFX)
-    const detachAudio = attachAudioToEngine(engine, audio);
-    // Subscribe to engine events (HUD/effects)
+    // Subscribe to engine events once, and fan out to audio + UI handlers
+    const onAudioEvent = audioEventHandler(audio);
     const unsubscribe = engine.subscribe((e) => {
+      onAudioEvent(e);
       if (e.type === 'ScoreChanged') setScore(e.score);
       else if (e.type === 'LevelChanged') setLevel(e.level);
       else if (e.type === 'LinesCleared') {
@@ -247,7 +247,6 @@ function GameCanvasInner(): JSX.Element {
       renderer.setEffects(null);
       effectsRef.current = null;
       unsubscribe();
-      detachAudio();
     };
   }, [addToast, instanceId, isMobile, reducedMotion, audio]);
 

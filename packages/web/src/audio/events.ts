@@ -2,16 +2,12 @@ import type { EngineEvent } from '@tetris/core';
 import type { IAudio } from './types';
 
 /**
- * Attach audio reactions to engine events and return an unsubscribe function.
- *
- * Maps core EngineEvents to SFX/music triggers on the provided audio surface.
- * Keeps logic lightweight; ids must exist in the audio manifest to have effect.
+ * Create a handler that maps EngineEvents to audio calls.
+ * Use this to fan-out a single engine subscription to multiple consumers
+ * to avoid draining events multiple times.
  */
-export function attachAudioToEngine(
-  engine: { subscribe(listener: (e: EngineEvent) => void): () => void },
-  audio: IAudio,
-): () => void {
-  const unsub = engine.subscribe((e) => {
+export function audioEventHandler(audio: IAudio) {
+  return (e: EngineEvent): void => {
     switch (e.type) {
       case 'PieceRotated':
         audio.playSfx('rotate');
@@ -34,10 +30,19 @@ export function attachAudioToEngine(
         audio.playSfx('game_over');
         break;
       default:
-        // ignore others by default
         break;
     }
-  });
-  return unsub;
+  };
 }
 
+/**
+ * Deprecated: direct subscription drains engine events multiple times if used alongside
+ * other subscribers. Prefer `audioEventHandler(audio)` + a single engine.subscribe in UI.
+ */
+export function attachAudioToEngine(
+  engine: { subscribe(listener: (e: EngineEvent) => void): () => void },
+  audio: IAudio,
+): () => void {
+  const handler = audioEventHandler(audio);
+  return engine.subscribe(handler);
+}
