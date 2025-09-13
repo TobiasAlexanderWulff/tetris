@@ -6,4 +6,4 @@ coverage/
 .vite/
 .eslintcache
 *.tsbuildinfo
-
+.tmp_music_build
