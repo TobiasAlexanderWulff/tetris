@@ -151,6 +151,15 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
             onChange={(e) => setSettings({ audio: { ...settings.audio, master: Number(e.target.value) } })}
           />
         </div>
+        <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
+          <label htmlFor="mute">Mute All</label>
+          <input
+            id="mute"
+            type="checkbox"
+            checked={settings.audio.muted}
+            onChange={(e) => setSettings({ audio: { ...settings.audio, muted: e.target.checked } })}
+          />
+        </div>
         <div style={section}>
           <div style={{ fontSize: 16, marginBottom: 8 }}>Highscores</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

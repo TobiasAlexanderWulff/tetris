@@ -9,6 +9,7 @@ import { MultiInput } from '../input/MultiInput';
 import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
 import { SettingsProvider, useSettings } from '../state/settings';
+import { AudioProvider } from '../audio/AudioProvider';
 import { SettingsModal } from './SettingsModal';
 import { HelpModal } from './HelpModal';
 import { StatusToasts, type Toast } from './StatusToasts';
@@ -27,7 +28,9 @@ import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
 export function GameCanvas(): JSX.Element {
   return (
     <SettingsProvider>
-      <GameCanvasInner />
+      <AudioProvider>
+        <GameCanvasInner />
+      </AudioProvider>
     </SettingsProvider>
   );
 }
