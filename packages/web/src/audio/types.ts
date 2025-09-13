@@ -46,6 +46,12 @@ export interface IAudio {
   /** Crossfade from current music to another. */
   crossfade(toId: string, seconds: number): void;
 
+  /**
+   * Play the given music only if no track is currently active and no switch is pending.
+   * Useful for default menu ambience that should not override an explicit gameplay request.
+   */
+  playIfIdle(id: string, opts?: { loop?: boolean; startAt?: number }): void;
+
   /** Set linear volume (0..1) for a given bus. */
   setVolume(kind: 'master' | 'music' | 'sfx', value: number): void;
   /** Mute or unmute all output (preserves volume settings). */
@@ -67,4 +73,3 @@ export interface IAudioAdapter {
   setBusVolume(kind: 'master' | 'music' | 'sfx', value: number): void;
   setMuted(flag: boolean): void;
 }
-

@@ -7,6 +7,8 @@ import type { AudioManifest, IAudio, IAudioAdapter } from './types';
 export class AudioService implements IAudio {
   private adapter: IAudioAdapter;
   private manifest: AudioManifest | null = null;
+  private preloaded = false;
+  private pendingMusic: { kind: 'start'; id: string } | { kind: 'xfade'; id: string; seconds: number } | null = null;
   private muted = false;
   private volumes: Record<'master' | 'music' | 'sfx', number> = { master: 0.8, music: 0.6, sfx: 0.9 };
   private currentMusic: string | null = null;
@@ -30,6 +32,14 @@ export class AudioService implements IAudio {
     this.lastPlayedAt.clear();
     this.polyphony.clear();
     await this.adapter.preload(manifest);
+    this.preloaded = true;
+    // If a music request came in before preload completed, honor it now
+    if (this.pendingMusic) {
+      const req = this.pendingMusic;
+      this.pendingMusic = null;
+      if (req.kind === 'start') this.playMusic(req.id);
+      else this.crossfade(req.id, req.seconds);
+    }
   }
 
   /**
@@ -72,6 +82,10 @@ export class AudioService implements IAudio {
    */
   playMusic(id: string, opts?: { loop?: boolean; startAt?: number }): void {
     if (!this.manifest || !this.manifest.music[id]) return;
+    if (!this.preloaded) {
+      this.pendingMusic = { kind: 'start', id };
+      return;
+    }
     this.currentMusic = id;
     this.adapter.startMusic(id, { loop: opts?.loop, startAt: opts?.startAt });
   }
@@ -85,8 +99,21 @@ export class AudioService implements IAudio {
   /** Crossfade from current music to a new track over the given duration. */
   crossfade(toId: string, seconds: number): void {
     if (!this.manifest || !this.manifest.music[toId]) return;
+    if (!this.preloaded) {
+      this.pendingMusic = { kind: 'xfade', id: toId, seconds };
+      return;
+    }
     this.currentMusic = toId;
     this.adapter.crossfade(toId, seconds);
+  }
+
+  /** Only start music if nothing is active or pending. */
+  playIfIdle(id: string, opts?: { loop?: boolean; startAt?: number }): void {
+    if (!this.manifest || !this.manifest.music[id]) return;
+    if (!this.preloaded) return; // wait until preloaded; provider can retry later if desired
+    if (this.pendingMusic) return;
+    if (this.currentMusic) return;
+    this.playMusic(id, opts);
   }
 
   /** Set linear volume for a bus and propagate to the adapter. */

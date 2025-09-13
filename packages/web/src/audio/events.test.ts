@@ -24,6 +24,7 @@ class FakeAudio implements IAudio {
   playMusic(): void { this.calls.push({ m: 'music' }); }
   stopMusic(): void { this.calls.push({ m: 'stop' }); }
   crossfade(): void { this.calls.push({ m: 'xfade' }); }
+  playIfIdle(): void { /* no-op */ }
   setVolume(): void {/* no-op */}
   muteAll(): void {/* no-op */}
 }
@@ -61,4 +62,3 @@ describe('attachAudioToEngine', () => {
     expect(idsAfter).toEqual(ids);
   });
 });
-

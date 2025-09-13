@@ -52,12 +52,18 @@ export class WebAudioAdapter implements IAudioAdapter {
       ...Object.entries(manifest.music).map(([id, def]) => [`music:${id}`, def.url] as [string, string]),
     ];
     // Fetch in parallel; allow failures to be caught per asset.
-    await Promise.all(
+    await Promise.allSettled(
       entries.map(async ([key, url]) => {
-        const res = await fetch(url);
-        const arr = await res.arrayBuffer();
-        const buf = await ctx.decodeAudioData(arr.slice(0));
-        this.buffers.set(key, buf);
+        try {
+          const res = await fetch(url);
+          const arr = await res.arrayBuffer();
+          const buf = await ctx.decodeAudioData(arr.slice(0));
+          this.buffers.set(key, buf);
+        } catch (err) {
+          // Tolerate missing/decoding failures; leave buffer absent.
+          // eslint-disable-next-line no-console
+          console.warn('[audio] failed to load', url, err);
+        }
       })
     );
   }
@@ -196,7 +202,16 @@ export class WebAudioAdapter implements IAudioAdapter {
       } catch {
         /* ignore */
       }
-      setTimeout(() => this.stopMusic({ fadeSec: 0 }), dur * 1000 + 30);
+      // Stop only the previous node after the fade, without touching current
+      setTimeout(() => {
+        try {
+          prev.node.stop();
+          prev.node.disconnect();
+          prev.gain.disconnect();
+        } catch {
+          /* ignore */
+        }
+      }, dur * 1000 + 30);
     }
   }
 

@@ -19,6 +19,8 @@ import { GameOverOverlay } from './GameOverOverlay';
 import { StartOverlay } from './StartOverlay';
 import { EffectScheduler } from '../effects/Effects';
 import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
+import { useAudio } from '../audio/AudioProvider';
+import { attachAudioToEngine } from '../audio/events';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -63,6 +65,7 @@ function GameCanvasInner(): JSX.Element {
   const [nextIds, setNextIds] = React.useState<readonly import('@tetris/core').TetrominoId[]>([]);
   const [holdId, setHoldId] = React.useState<import('@tetris/core').TetrominoId | null>(null);
   const [canHold, setCanHold] = React.useState(true);
+  const audio = useAudio();
   // Refs to avoid stale closure inside host effect
   const scoreRef = React.useRef(0);
   const levelRef = React.useRef(0);
@@ -160,7 +163,9 @@ function GameCanvasInner(): JSX.Element {
     setScore(s0.score);
     setLevel(s0.level);
     setLines(s0.linesClearedTotal);
-    // Subscribe to engine events
+    // Audio mapping (SFX)
+    const detachAudio = attachAudioToEngine(engine, audio);
+    // Subscribe to engine events (HUD/effects)
     const unsubscribe = engine.subscribe((e) => {
       if (e.type === 'ScoreChanged') setScore(e.score);
       else if (e.type === 'LevelChanged') setLevel(e.level);
@@ -199,6 +204,8 @@ function GameCanvasInner(): JSX.Element {
         setGameOver(true);
         setPaused(true);
         host.setPaused(true);
+        // Crossfade back to menu music on game over
+        try { audio.crossfade('menu_ambient', 0.6); } catch { /* ignore in tests */ }
         if (!submittedRef.current) {
           submittedRef.current = true;
           const duration = Math.max(0, Math.floor(performance.now() - startTimeRef.current));
@@ -226,6 +233,7 @@ function GameCanvasInner(): JSX.Element {
     host.setPaused(true);
     setStarted(false);
     submittedRef.current = false;
+    // Menu music now handled by AudioProvider after user gesture
     // Load current PB for the mode at start
     try {
       const top = getHighscores('marathon');
@@ -239,8 +247,9 @@ function GameCanvasInner(): JSX.Element {
       renderer.setEffects(null);
       effectsRef.current = null;
       unsubscribe();
+      detachAudio();
     };
-  }, [addToast, instanceId, isMobile, reducedMotion]);
+  }, [addToast, instanceId, isMobile, reducedMotion, audio]);
 
   // Apply settings changes to input live (no restart)
   useEffect(() => {
@@ -311,6 +320,8 @@ function GameCanvasInner(): JSX.Element {
         setStarted(true);
         hostRef.current?.setPaused(false);
         startTimeRef.current = performance.now();
+        // Crossfade to gameplay theme
+        try { audio.crossfade('theme_main', 0.8); } catch { /* ignore in tests */ }
         return;
       }
       if (ev.code === 'Escape') {
@@ -326,6 +337,7 @@ function GameCanvasInner(): JSX.Element {
         setStarted(true);
         hostRef.current?.setPaused(false);
         startTimeRef.current = performance.now();
+        try { audio.crossfade('theme_main', 0.8); } catch { /* ignore in tests */ }
       }
     };
     window.addEventListener('keydown', onKey);
@@ -334,7 +346,16 @@ function GameCanvasInner(): JSX.Element {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('pointerdown', onPointer);
     };
-  }, [started]);
+  }, [started, audio]);
+
+  // React to pause toggles: crossfade to menu when paused; back to theme when resuming.
+  useEffect(() => {
+    if (!started) return; // handled by start effect
+    try {
+      if (paused) audio.crossfade('menu_ambient', 0.6);
+      else audio.crossfade('theme_main', 0.6);
+    } catch { /* ignore in tests */ }
+  }, [paused, started, audio]);
 
   return (
     <div

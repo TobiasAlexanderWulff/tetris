@@ -40,11 +40,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }): JSX.
     const onGesture = () => {
       if (resumedRef.current) return;
       resumedRef.current = true;
-      // Preload assets first (safe: manifest may be empty in MVP)
-      void audio.preload(audioManifest).catch(() => {/* ignore in tests */});
+      // Resume then preload assets; AudioService defers music requests until preload completes
       void audio.resumeOnUserGesture().catch(() => {
         // Ignore resume errors in non-WebAudio environments (e.g., jsdom tests)
       });
+      void audio.preload(audioManifest)
+        .then(() => {
+          // Start menu ambience only if idle (won't override a pending gameplay request)
+          audio.playIfIdle?.('menu_ambient', { loop: true });
+        })
+        .catch(() => {/* ignore in tests */});
       window.removeEventListener('pointerdown', onGesture);
       window.removeEventListener('keydown', onGesture);
     };
