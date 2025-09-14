@@ -6,7 +6,7 @@ import { MouseInput } from './MouseInput';
 // JSDOM may not provide PointerEvent in this environment
 if (typeof (globalThis as unknown as { PointerEvent?: unknown }).PointerEvent === 'undefined') {
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-expect-error - define global PointerEvent for tests
+  // @ts-ignore - define global PointerEvent for tests
   globalThis.PointerEvent = class PointerEvent extends MouseEvent {
     constructor(type: string, eventInitDict?: MouseEventInit) {
       super(type, eventInitDict);

@@ -33,8 +33,8 @@ describe('highscore API', () => {
     expect(r2.rank).toBe(1);
     const list = getHighscores('marathon');
     expect(list.length).toBe(2);
-    expect(list[0].score).toBe(200);
-    expect(list[1].score).toBe(100);
+    expect(list[0]!.score).toBe(200);
+    expect(list[1]!.score).toBe(100);
   });
 
   it('respects per-mode limit and rejects when out of range', () => {
@@ -62,11 +62,10 @@ describe('highscore API', () => {
     // add a better score, then replace with old export
     maybeSubmit({ ...base, score: 999 });
     const before = getHighscores('marathon');
-    expect(before[0].score).toBe(999);
+    expect(before[0]!.score).toBe(999);
     const res = importHighscores(json, 'replace');
     expect(res.ok).toBe(true);
     const after = getHighscores('marathon');
-    expect(after[0].score).toBe(100);
+    expect(after[0]!.score).toBe(100);
   });
 });
-

@@ -14,9 +14,9 @@ export function updateBindings(
   const idx = filtered.findIndex((b) => b.action === action);
   if (idx >= 0) {
     const next = [...filtered];
-    next[idx] = { ...next[idx], code };
+    const current = next[idx]!;
+    next[idx] = { code, action: current.action };
     return next;
   }
   return [...filtered, { code, action }];
 }
-

@@ -221,7 +221,7 @@ function GameCanvasInner(): JSX.Element {
           try {
             const top = getHighscores('marathon');
             setTopHighscores(top);
-            setPb(top.length ? top[0].score : undefined);
+            setPb(top[0]?.score);
           } catch {
             setTopHighscores([]);
           }
@@ -237,7 +237,7 @@ function GameCanvasInner(): JSX.Element {
     // Load current PB for the mode at start
     try {
       const top = getHighscores('marathon');
-      setPb(top.length ? top[0].score : undefined);
+      setPb(top[0]?.score);
     } catch {
       setPb(undefined);
     }

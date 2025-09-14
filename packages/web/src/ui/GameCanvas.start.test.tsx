@@ -7,7 +7,8 @@ import { GameCanvas } from './GameCanvas';
 describe('GameCanvas start interaction', () => {
   beforeAll(() => {
     // Minimal 2D context mock for jsdom
-    // @ts-expect-error jsdom lacks CanvasRenderingContext2D
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore jsdom lacks CanvasRenderingContext2D
     Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
       configurable: true,
       value: () => {

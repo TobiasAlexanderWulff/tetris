@@ -6,11 +6,7 @@ import { getPalette } from '../renderer/colors';
 type VMock = ReturnType<typeof vi.fn>;
 type MockWithCalls = VMock & { mock: { calls: unknown[] } } & { mockClear: () => void };
 
-interface MockCtx
-  extends Pick<
-    CanvasRenderingContext2D,
-    'save' | 'restore' | 'translate' | 'scale' | 'fillRect' | 'getTransform'
-  > {
+interface MockCtx {
   canvas: { width: number; height: number };
   fillStyle: string;
   strokeStyle: string;
@@ -20,7 +16,7 @@ interface MockCtx
   restore: VMock;
   translate: VMock;
   scale: VMock;
-  getTransform: () => { a: number; d: number };
+  getTransform: () => DOMMatrix;
 }
 
 function makeCtx(width = 200, height = 400): MockCtx {
@@ -34,7 +30,8 @@ function makeCtx(width = 200, height = 400): MockCtx {
     translate: vi.fn(),
     scale: vi.fn(),
     fillRect: vi.fn() as MockWithCalls,
-    getTransform: () => ({ a: 1, d: 1 }),
+    // Not executed in typecheck; sufficient for types
+    getTransform: () => ({ a: 1, d: 1 } as unknown as DOMMatrix),
   } satisfies MockCtx;
 }
 
@@ -72,12 +69,12 @@ describe('EffectScheduler', () => {
     eff.onLinesCleared([rowIdx], 0);
 
     // Midway through effect
-    eff.render(ctx, snap, getPalette('dark'), 60);
+    eff.render(ctx as unknown as CanvasRenderingContext2D, snap, getPalette('dark'), 60);
     expect((ctx.fillRect as MockWithCalls).mock.calls.length).toBeGreaterThan(0);
 
     // Expired: no further draws and cleaned up
     (ctx.fillRect as MockWithCalls).mockClear();
-    eff.render(ctx, snap, getPalette('dark'), 500);
+    eff.render(ctx as unknown as CanvasRenderingContext2D, snap, getPalette('dark'), 500);
     expect((ctx.fillRect as MockWithCalls).mock.calls.length).toBe(0);
   });
 
@@ -88,11 +85,11 @@ describe('EffectScheduler', () => {
     const snap = makeSnapshot();
 
     eff.onPieceSpawned('T', { x: 4, y: 2 }, 0, 0);
-    eff.render(ctx, snap, getPalette('dark'), 60);
+    eff.render(ctx as unknown as CanvasRenderingContext2D, snap, getPalette('dark'), 60);
     expect((ctx.fillRect as MockWithCalls).mock.calls.length).toBeGreaterThan(0);
 
     (ctx.fillRect as MockWithCalls).mockClear();
-    eff.render(ctx, snap, getPalette('dark'), 500);
+    eff.render(ctx as unknown as CanvasRenderingContext2D, snap, getPalette('dark'), 500);
     expect((ctx.fillRect as MockWithCalls).mock.calls.length).toBe(0);
   });
 
@@ -102,7 +99,7 @@ describe('EffectScheduler', () => {
     const ctx = makeCtx();
     const snap = makeSnapshot();
     eff.onLinesCleared([snap.bufferRows + 1], 0);
-    eff.render(ctx, snap, getPalette('dark'), 60);
+    eff.render(ctx as unknown as CanvasRenderingContext2D, snap, getPalette('dark'), 60);
     expect((ctx.fillRect as MockWithCalls).mock.calls.length).toBe(0);
   });
 });
