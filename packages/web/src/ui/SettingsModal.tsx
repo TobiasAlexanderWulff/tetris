@@ -3,6 +3,10 @@ import { useSettings } from '../state/settings';
 import { exportHighscores, importHighscores, clearHighscores } from '../highscore';
 import { ControlsPanel } from './ControlsPanel';
 
+/**
+ * SettingsModal presents gameplay, audio, and control options.
+ * Handles Escape to close itself without affecting underlying pause state.
+ */
 export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element {
   const { settings, setSettings } = useSettings();
   const overlay: React.CSSProperties = {
@@ -204,17 +208,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
         </div>
 
         <div style={btnRow}>
-          <div
-            style={btn}
-            onClick={onClose}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onClose();
-            }}
-          >
+          <button type="button" style={btn} onClick={onClose} aria-label="close-settings">
             Close
-          </div>
+          </button>
         </div>
       </div>
     </div>
