@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "Tetris game monorepo (core engine + web app)",
-  "packageManager": "pnpm@9.6.0",
+  "packageManager": "pnpm@10.16.1",
   "workspaces": [
     "packages/*"
   ],
@@ -15,8 +15,7 @@
     "lint": "pnpm --filter @tetris/core lint && pnpm --filter @tetris/web lint",
     "format": "pnpm --filter @tetris/core format && pnpm --filter @tetris/web format",
     "test": "pnpm --filter @tetris/core test --silent && pnpm --filter @tetris/web test --silent"
-  }
-  ,
+  },
   "pnpm": {
     "overrides": {
       "typescript": "5.5.4"
