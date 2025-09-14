@@ -36,7 +36,7 @@ export function defaultSettings(): Settings {
     allow180: false,
     theme: 'dark',
     animations: animationsDefault,
-    mouseControls: true,
+    mouseControls: false,
     mouseSensitivityPxPerCell: 'auto',
     bindings: [
       { code: 'ArrowLeft', action: 'Left' },
@@ -78,7 +78,7 @@ export function loadSettings(): Settings {
     }
     // Mouse settings migration defaults
     if (!('mouseControls' in parsedObj)) {
-      merged.mouseControls = true;
+      merged.mouseControls = false;
       saveSettings(merged);
     }
     if (!('mouseSensitivityPxPerCell' in parsedObj)) {

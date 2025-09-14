@@ -324,6 +324,17 @@ function GameCanvasInner(): JSX.Element {
         return;
       }
       if (ev.code === 'Escape') {
+        // If a modal is open, close it and do not toggle pause
+        if (showSettings) {
+          ev.preventDefault();
+          setShowSettings(false);
+          return;
+        }
+        if (showHelp) {
+          ev.preventDefault();
+          setShowHelp(false);
+          return;
+        }
         setPaused((p) => {
           const next = !p;
           hostRef.current?.setPaused(next);
@@ -345,7 +356,7 @@ function GameCanvasInner(): JSX.Element {
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('pointerdown', onPointer);
     };
-  }, [started, audio]);
+  }, [started, audio, showSettings, showHelp]);
 
   // React to pause toggles: crossfade to menu when paused; back to theme when resuming.
   useEffect(() => {
