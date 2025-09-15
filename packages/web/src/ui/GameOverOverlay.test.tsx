@@ -17,7 +17,7 @@ describe('GameOverOverlay', () => {
   });
 
   it('shows new highscore banner and table when provided', () => {
-    const { container } = render(
+    render(
       <GameOverOverlay
         visible={true}
         score={123}
