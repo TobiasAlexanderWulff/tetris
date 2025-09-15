@@ -4,6 +4,10 @@ import { HighscoreTable } from './HighscoreTable';
 
 /**
  * GameOverOverlay shows final stats and provides a Restart action.
+ *
+ * Responsive behavior: when the viewport height is small, the panel
+ * constrains to the available height and the inner content becomes
+ * scrollable while the action buttons remain visible.
  */
 export function GameOverOverlay({
   visible,
@@ -33,6 +37,8 @@ export function GameOverOverlay({
     background: 'var(--overlay-bg, rgba(0,0,0,0.7))',
     display: 'grid',
     placeItems: 'center',
+    padding: 16,
+    boxSizing: 'border-box',
     color: 'var(--fg, #e2e8f0)',
   };
   const panel: React.CSSProperties = {
@@ -40,6 +46,11 @@ export function GameOverOverlay({
     padding: 16,
     borderRadius: 8,
     minWidth: 320,
+    width: 'min(92vw, 800px)',
+    maxHeight: 'calc(100dvh - 32px)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
   };
@@ -54,31 +65,38 @@ export function GameOverOverlay({
     margin: '8px 0',
     fontWeight: 600,
   };
+  const content: React.CSSProperties = {
+    flex: '1 1 auto',
+    minHeight: 0,
+    overflowY: 'auto',
+  };
 
   return (
     <div style={overlay} role="dialog" aria-modal="true" aria-label="game-over">
       <div style={panel}>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Game Over</div>
-        {/* Removed duplicate top-line new highscore text */}
-        <div style={statRow}>
-          <div>Score</div>
-          <div>{score}</div>
-          <div>Level</div>
-          <div>{level}</div>
-          <div>Lines</div>
-          <div>{lines}</div>
-        </div>
-        {/* Removed compact Top Scores list in favor of table below */}
-        {newHigh ? (
-          <div style={banner} aria-label="new-highscore">Score ranked{typeof rank === 'number' ? ` #${rank}` : ''}!</div>
-        ) : null}
-
-        {top && top.length ? (
-          <div style={{ marginTop: 8 }}>
-            <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>Top Highscores</div>
-            <HighscoreTable entries={top} max={10} />
+        <div style={content} aria-label="game-over-content">
+          {/* Removed duplicate top-line new highscore text */}
+          <div style={statRow}>
+            <div>Score</div>
+            <div>{score}</div>
+            <div>Level</div>
+            <div>{level}</div>
+            <div>Lines</div>
+            <div>{lines}</div>
           </div>
-        ) : null}
+          {/* Removed compact Top Scores list in favor of table below */}
+          {newHigh ? (
+            <div style={banner} aria-label="new-highscore">Score ranked{typeof rank === 'number' ? ` #${rank}` : ''}!</div>
+          ) : null}
+
+          {top && top.length ? (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 4 }}>Top Highscores</div>
+              <HighscoreTable entries={top} max={10} />
+            </div>
+          ) : null}
+        </div>
 
         <div style={btnRow}>
           <div

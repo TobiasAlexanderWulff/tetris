@@ -6,6 +6,10 @@ import { ControlsPanel } from './ControlsPanel';
 /**
  * SettingsModal presents gameplay, audio, and control options.
  * Handles Escape to close itself without affecting underlying pause state.
+ *
+ * Responsive behavior: the panel is width/height constrained and the
+ * main content becomes scrollable on short viewports while the action
+ * row remains visible.
  */
 export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element {
   const { settings, setSettings } = useSettings();
@@ -15,6 +19,8 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
     background: 'var(--overlay-bg, rgba(0,0,0,0.7))',
     display: 'grid',
     placeItems: 'center',
+    padding: 16,
+    boxSizing: 'border-box',
     color: 'var(--fg, #e2e8f0)',
   };
   const panel: React.CSSProperties = {
@@ -24,18 +30,25 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
     minWidth: 300,
+    width: 'min(92vw, 900px)',
+    maxHeight: 'calc(100dvh - 32px)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   };
   const row: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 };
   const btnRow: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' };
   const section: React.CSSProperties = { marginTop: 16 };
   const input: React.CSSProperties = { padding: '6px 8px', background: '#0b1220', borderRadius: 6, color: 'var(--fg, #e2e8f0)' };
   const btn: React.CSSProperties = { padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer' };
+  const content: React.CSSProperties = { flex: '1 1 auto', minHeight: 0, overflowY: 'auto' };
 
   return (
     <div style={overlay} role="dialog" aria-modal="true" aria-label="settings">
       <div style={panel}>
         <div style={{ fontSize: 18, marginBottom: 8 }}>Settings</div>
-        <ControlsPanel />
+        <div style={content} aria-label="settings-content">
+          <ControlsPanel />
         {/* Mouse controls */}
         <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
           <label htmlFor="mouseControls">Enable Mouse Controls</label>
@@ -205,6 +218,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
               Clear All
             </button>
           </div>
+        </div>
         </div>
 
         <div style={btnRow}>

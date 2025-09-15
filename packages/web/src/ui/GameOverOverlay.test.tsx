@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { GameOverOverlay } from './GameOverOverlay';
 
 describe('GameOverOverlay', () => {
@@ -17,7 +17,7 @@ describe('GameOverOverlay', () => {
   });
 
   it('shows new highscore banner and table when provided', () => {
-    render(
+    const { container } = render(
       <GameOverOverlay
         visible={true}
         score={123}
@@ -33,5 +33,30 @@ describe('GameOverOverlay', () => {
     );
     expect(screen.getByLabelText('new-highscore')).toBeTruthy();
     expect(screen.getByRole('table', { name: 'highscore-table' })).toBeTruthy();
+  });
+
+  it('constrains height and makes content scrollable', () => {
+    const { container } = render(
+      <GameOverOverlay
+        visible={true}
+        score={123}
+        level={4}
+        lines={10}
+        top={new Array(20).fill(0).map((_, i) => ({
+          id: String(i),
+          score: 1000 - i,
+          lines: i,
+          level: 1,
+          durationMs: 1000 * (i + 1),
+          timestamp: Date.now(),
+          mode: 'marathon',
+          version: 1,
+        }))}
+        onRestart={() => {}}
+      />,
+    );
+    const content = within(container).getByLabelText('game-over-content') as HTMLElement;
+    expect(content).toBeTruthy();
+    expect(content.style.overflowY === 'auto' || content.style.overflowY === 'scroll').toBe(true);
   });
 });
