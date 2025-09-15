@@ -2,6 +2,8 @@ import React from 'react';
 
 /**
  * PauseOverlay covers the game with a semi-transparent layer and basic controls.
+ * The panel height is constrained for small viewports with scrollable content
+ * so that actions remain visible.
  */
 export function PauseOverlay(props: { visible: boolean; onResume?: () => void; onOpenSettings?: () => void; onOpenHelp?: () => void }): JSX.Element | null {
   if (!props.visible) return null;
@@ -11,6 +13,8 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
     background: 'var(--overlay-bg, rgba(0,0,0,0.7))',
     display: 'grid',
     placeItems: 'center',
+    padding: 16,
+    boxSizing: 'border-box',
     color: 'var(--fg, #e2e8f0)',
   };
   const panel: React.CSSProperties = {
@@ -20,6 +24,11 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
     textAlign: 'center',
     minWidth: 240,
+    width: 'min(92vw, 480px)',
+    maxHeight: 'calc(100dvh - 32px)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
   };
   const btnCol: React.CSSProperties = {
     display: 'flex',
@@ -36,14 +45,16 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
     cursor: 'pointer',
     display: 'inline-block',
   };
+  const content: React.CSSProperties = { flex: '1 1 auto', minHeight: 0, overflowY: 'auto' };
   return (
     <div style={overlay} aria-label="pause-overlay">
       <div style={panel} role="dialog" aria-modal="true" aria-labelledby="paused-title">
         <div id="paused-title" style={{ fontSize: 18, marginBottom: 8 }}>
           Paused
         </div>
-        <div style={{ opacity: 0.9 }}>Press Escape to resume</div>
-        <div style={btnCol}>
+        <div style={content} aria-label="pause-content">
+          <div style={{ opacity: 0.9 }}>Press Escape to resume</div>
+          <div style={btnCol}>
           <div
             style={btn}
             tabIndex={0}
@@ -79,6 +90,7 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
             aria-label="open-help"
           >
             Help
+          </div>
           </div>
         </div>
       </div>

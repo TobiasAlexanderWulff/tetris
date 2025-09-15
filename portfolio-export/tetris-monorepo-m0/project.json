@@ -1,0 +1,53 @@
+{
+  "id": "gh:TobiasAlexanderWulff/tetris",
+  "slug": "tetris",
+  "title": "Tetris",
+  "summary": "Modern TypeScript Tetris in a tidy monorepo: a small core engine plus a Vite + React web app with configurable controls, audio, and local highscores.",
+  "description": "This project is a pragmatic Tetris implementation organized as a two‑package monorepo: `@tetris/core` for engine scaffolding and `@tetris/web` for the playable web client. The web app renders to an HTML5 canvas and targets a smooth 60 FPS experience with a clean UI, including Settings for DAS/ARR, 180° rotation, themes, animation toggles, mouse controls, and audio preferences. Local highscores are built in with export/import and clearing utilities.\n\nThe codebase favors modularity and testability: TypeScript throughout, Vite for fast dev/build, Vitest and Testing Library for unit/UI tests, and ESLint/Prettier for consistency. Audio is abstracted via a small service and a Web Audio adapter, mapping engine events (line clears, tetris, level up) to SFX and music in a future‑proof way.\n\nThis MVP lays groundwork toward a guideline‑inspired ruleset (SRS, 7‑bag, scoring, ghost, hold, next queue) and keeps project hygiene front‑and‑center: workspace scripts, CI hooks, and a documented plan for larger features like mouse input and audio.",
+  "status": "active",
+  "tags": [
+    "typescript",
+    "react",
+    "vite",
+    "html5-canvas",
+    "web-audio",
+    "pnpm",
+    "game",
+    "tetris",
+    "monorepo"
+  ],
+  "categories": ["game", "web-app"],
+  "roles": ["engineering"],
+  "skills": [
+    "TypeScript",
+    "React",
+    "Vite",
+    "HTML5 Canvas",
+    "Web Audio API",
+    "State management",
+    "Unit testing (Vitest)"
+  ],
+  "links": {
+    "source": "https://github.com/TobiasAlexanderWulff/tetris"
+  },
+  "media": {
+    "social_card": {
+      "src": "media/social-card.png",
+      "alt": "Gameplay view with playfield, next queue, and HUD.",
+      "width": 1908,
+      "height": 1022
+    },
+    "images": [
+      { "src": "media/screenshot-gameplay.png", "alt": "In-game action at high level with colorful tetromino stack.", "width": 1908, "height": 1022 },
+      { "src": "media/screenshot-settings.png", "alt": "Settings modal with controls, DAS/ARR, theme, audio, and highscores actions.", "width": 606, "height": 853 },
+      { "src": "media/screenshot-gameover.png", "alt": "Game Over dialog showing score table with new #1 score.", "width": 963, "height": 971 }
+    ]
+  },
+  "dates": {
+    "created": "2025-09-09",
+    "updated": "2025-09-14"
+  },
+  "featured": true,
+  "priority": 999,
+  "visibility": "public"
+}

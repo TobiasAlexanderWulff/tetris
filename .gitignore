@@ -7,3 +7,4 @@ coverage/
 .eslintcache
 *.tsbuildinfo
 .tmp_music_build
+.vscode/

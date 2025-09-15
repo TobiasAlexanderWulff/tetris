@@ -14,6 +14,8 @@ export function StartOverlay({ visible }: { visible: boolean }): JSX.Element | n
     background: 'rgba(0,0,0,0.2)',
     display: 'grid',
     placeItems: 'center',
+    padding: 16,
+    boxSizing: 'border-box',
     color: 'var(--fg, #e2e8f0)',
     pointerEvents: 'none',
   };
