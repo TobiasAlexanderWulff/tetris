@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import { describe, it, expect, beforeAll } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { GameCanvas } from './GameCanvas';
 
 describe('GameCanvas start interaction', () => {
@@ -44,6 +44,21 @@ describe('GameCanvas start interaction', () => {
 
     await waitFor(() => {
       expect(screen.queryByLabelText('start-overlay')).toBeNull();
+    });
+  });
+
+  it('opens and closes the pause overlay via menu button', async () => {
+    render(<GameCanvas />);
+
+    const [menuButton] = screen.getAllByRole('button', { name: /open menu/i });
+    fireEvent.click(menuButton);
+
+    expect(await screen.findByLabelText('pause-overlay')).toBeTruthy();
+
+    fireEvent.click(menuButton);
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText('pause-overlay')).toBeNull();
     });
   });
 });
