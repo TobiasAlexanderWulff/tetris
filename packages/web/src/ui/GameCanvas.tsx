@@ -17,6 +17,7 @@ import { NextQueue } from './NextQueue';
 import { HoldBox } from './HoldBox';
 import { GameOverOverlay } from './GameOverOverlay';
 import { StartOverlay } from './StartOverlay';
+import { MenuButton } from './MenuButton';
 import { EffectScheduler } from '../effects/Effects';
 import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
 import { useAudio } from '../audio/AudioProvider';
@@ -61,6 +62,19 @@ function GameCanvasInner(): JSX.Element {
   const [started, setStarted] = React.useState(false);
   const { toasts, addToast } = useToastManager();
   const { settings } = useSettings();
+  const toggleMenu = React.useCallback(() => {
+    setPaused((prev) => {
+      const next = !prev;
+      if (next) {
+        hostRef.current?.setPaused(true);
+      } else {
+        setShowSettings(false);
+        setShowHelp(false);
+        if (started) hostRef.current?.setPaused(false);
+      }
+      return next;
+    });
+  }, [started]);
   const palette = React.useMemo(() => getPalette(settings.theme), [settings.theme]);
   const [nextIds, setNextIds] = React.useState<readonly import('@tetris/core').TetrominoId[]>([]);
   const [holdId, setHoldId] = React.useState<import('@tetris/core').TetrominoId | null>(null);
@@ -378,7 +392,21 @@ function GameCanvasInner(): JSX.Element {
     >
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
       <HUD score={score} level={level} lines={lines} pb={pb} />
-      <NextQueue next={nextIds} palette={palette} />
+      <div
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: 12,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
+          alignItems: 'flex-end',
+          zIndex: 5,
+        }}
+      >
+        <MenuButton open={paused} onToggle={toggleMenu} />
+        <NextQueue next={nextIds} palette={palette} style={{ position: 'static', marginTop: 0 }} />
+      </div>
       <HoldBox hold={holdId} canHold={canHold} palette={palette} />
       <StatusToasts toasts={toasts} />
       <StartOverlay visible={!started && !gameOver} />
@@ -387,8 +415,10 @@ function GameCanvasInner(): JSX.Element {
         onOpenSettings={() => setShowSettings(true)}
         onOpenHelp={() => setShowHelp(true)}
         onResume={() => {
+          setShowSettings(false);
+          setShowHelp(false);
           setPaused(false);
-          hostRef.current?.setPaused(false);
+          if (started) hostRef.current?.setPaused(false);
         }}
       />
       {showSettings ? <SettingsModal onClose={() => setShowSettings(false)} /> : null}

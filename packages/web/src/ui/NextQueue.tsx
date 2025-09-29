@@ -6,7 +6,15 @@ import { PiecePreview } from './PiecePreview';
 /**
  * NextQueue renders a vertical list of upcoming tetromino previews.
  */
-export function NextQueue({ next, palette }: { next: readonly TetrominoId[]; palette: Palette }): JSX.Element {
+export function NextQueue({
+  next,
+  palette,
+  style,
+}: {
+  next: readonly TetrominoId[];
+  palette: Palette;
+  style?: React.CSSProperties;
+}): JSX.Element {
   const wrap: React.CSSProperties = {
     position: 'absolute',
     right: 12,
@@ -21,7 +29,7 @@ export function NextQueue({ next, palette }: { next: readonly TetrominoId[]; pal
     alignItems: 'center',
   };
   return (
-    <div style={wrap} aria-label="next-queue">
+    <div style={{ ...wrap, ...style }} aria-label="next-queue">
       <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>NEXT</div>
       {next.map((id, idx) => (
         <PiecePreview key={`${id}-${idx}`} id={id} palette={palette} width={48} height={34} />
