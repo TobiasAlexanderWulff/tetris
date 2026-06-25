@@ -3,30 +3,52 @@ import type { TetrominoId } from '@tetris/core';
 import type { Palette } from '../renderer/colors';
 import { PiecePreview } from './PiecePreview';
 
+const COMPACT_LANDSCAPE_QUERY = '(orientation: landscape) and (max-height: 600px)';
+
+/** Track whether the queue should use the fixed three-piece landscape variant. */
+function useCompactLandscape(): boolean {
+  const [matches, setMatches] = React.useState(() =>
+    typeof window.matchMedia === 'function'
+      ? window.matchMedia(COMPACT_LANDSCAPE_QUERY).matches
+      : false,
+  );
+
+  React.useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return undefined;
+    const mediaQuery = window.matchMedia(COMPACT_LANDSCAPE_QUERY);
+    const updateMatch = (): void => setMatches(mediaQuery.matches);
+    updateMatch();
+    mediaQuery.addEventListener('change', updateMatch);
+    return () => mediaQuery.removeEventListener('change', updateMatch);
+  }, []);
+
+  return matches;
+}
+
 /**
  * NextQueue renders a vertical list of upcoming tetromino previews.
  */
-export function NextQueue({ next, palette }: { next: readonly TetrominoId[]; palette: Palette }): JSX.Element {
+export function NextQueue({
+  next,
+  palette,
+}: {
+  next: readonly TetrominoId[];
+  palette: Palette;
+}): JSX.Element {
   const wrap: React.CSSProperties = {
-    position: 'absolute',
-    right: 12,
-    top: 12,
-    background: 'var(--panel-bg, rgba(15,15,18,0.6))',
-    color: 'var(--fg, #e2e8f0)',
-    padding: 8,
-    borderRadius: 8,
     display: 'flex',
     flexDirection: 'column',
     gap: 8,
     alignItems: 'center',
   };
+  const visibleNext = useCompactLandscape() ? next.slice(0, 3) : next;
+
   return (
-    <div style={wrap} aria-label="next-queue">
+    <div className="next-queue" style={wrap} aria-label="next-queue">
       <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>NEXT</div>
-      {next.map((id, idx) => (
+      {visibleNext.map((id, idx) => (
         <PiecePreview key={`${id}-${idx}`} id={id} palette={palette} width={48} height={34} />
       ))}
     </div>
   );
 }
-

@@ -7,7 +7,9 @@ import { GameOverOverlay } from './GameOverOverlay';
 describe('GameOverOverlay', () => {
   it('renders stats and handles restart', () => {
     const onRestart = vi.fn();
-    render(<GameOverOverlay visible={true} score={123} level={4} lines={10} onRestart={onRestart} />);
+    render(
+      <GameOverOverlay visible={true} score={123} level={4} lines={10} onRestart={onRestart} />,
+    );
     expect(screen.getByLabelText('game-over')).toBeTruthy();
     expect(screen.getByText('Score')).toBeTruthy();
     expect(screen.getByText('123')).toBeTruthy();
@@ -26,7 +28,16 @@ describe('GameOverOverlay', () => {
         newHigh={true}
         rank={1}
         top={[
-          { id: 'x', score: 999, lines: 10, level: 1, durationMs: 1000, timestamp: Date.now(), mode: 'marathon', version: 1 },
+          {
+            id: 'x',
+            score: 999,
+            lines: 10,
+            level: 1,
+            durationMs: 1000,
+            timestamp: Date.now(),
+            mode: 'marathon',
+            version: 1,
+          },
         ]}
         onRestart={() => {}}
       />,
@@ -58,5 +69,8 @@ describe('GameOverOverlay', () => {
     const content = within(container).getByLabelText('game-over-content') as HTMLElement;
     expect(content).toBeTruthy();
     expect(content.style.overflowY === 'auto' || content.style.overflowY === 'scroll').toBe(true);
+    const panel = within(container).getByLabelText('game-over').firstElementChild as HTMLElement;
+    expect(['0', '0px']).toContain(panel.style.minWidth);
+    expect(panel.style.boxSizing).toBe('border-box');
   });
 });

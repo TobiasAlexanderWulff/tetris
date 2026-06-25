@@ -5,6 +5,7 @@ import { CanvasRenderer } from '../renderer/CanvasRenderer';
 import { getPalette } from '../renderer/colors';
 import { KeyboardInput } from '../input/KeyboardInput';
 import { MouseInput } from '../input/MouseInput';
+import { TouchInput } from '../input/TouchInput';
 import { MultiInput } from '../input/MultiInput';
 import { HUD } from './HUD';
 import { PauseOverlay } from './PauseOverlay';
@@ -21,6 +22,9 @@ import { EffectScheduler } from '../effects/Effects';
 import { initHighscores, maybeSubmit, getHighscores } from '../highscore';
 import { useAudio } from '../audio/AudioProvider';
 import { audioEventHandler } from '../audio/events';
+import { GameLayout } from './GameLayout';
+import { detectTouchEnvironment, shouldEnableTouchControls } from '../input/touchDetection';
+import { TouchOnboarding } from './TouchOnboarding';
 
 // KeyboardInput is now used; no no-op input needed.
 
@@ -42,6 +46,7 @@ function GameCanvasInner(): JSX.Element {
   const hostRef = useRef<GameHost | null>(null);
   const kbRef = useRef<KeyboardInput | null>(null);
   const mouseRef = useRef<MouseInput | null>(null);
+  const touchRef = useRef<TouchInput | null>(null);
   const multiRef = useRef<MultiInput | null>(null);
   const rendererRef = useRef<CanvasRenderer | null>(null);
   const engineRef = useRef<ReturnType<typeof createDefaultEngine> | null>(null);
@@ -55,12 +60,15 @@ function GameCanvasInner(): JSX.Element {
   const [gameOver, setGameOver] = React.useState(false);
   const [newHigh, setNewHigh] = React.useState(false);
   const [highRank, setHighRank] = React.useState<number | undefined>(undefined);
-  const [topHighscores, setTopHighscores] = React.useState<import('../highscore').HighscoreEntry[]>([]);
+  const [topHighscores, setTopHighscores] = React.useState<import('../highscore').HighscoreEntry[]>(
+    [],
+  );
   const [pb, setPb] = React.useState<number | undefined>(undefined);
   const [instanceId, setInstanceId] = React.useState(0);
   const [started, setStarted] = React.useState(false);
-  const { toasts, addToast } = useToastManager();
+  const { toasts, addToast, setToasts } = useToastManager();
   const { settings } = useSettings();
+  const touchControlsEnabled = useTouchControlsEnabled(settings.touchControlsMode);
   const palette = React.useMemo(() => getPalette(settings.theme), [settings.theme]);
   const [nextIds, setNextIds] = React.useState<readonly import('@tetris/core').TetrominoId[]>([]);
   const [holdId, setHoldId] = React.useState<import('@tetris/core').TetrominoId | null>(null);
@@ -77,7 +85,10 @@ function GameCanvasInner(): JSX.Element {
   // Track reduced motion and mobile to gate optional particles
   const reducedMotion = React.useMemo(() => {
     try {
-      return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      return (
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      );
     } catch {
       return false;
     }
@@ -94,6 +105,7 @@ function GameCanvasInner(): JSX.Element {
   const initBindingsRef = React.useRef(settings.bindings);
   const initMouseControlsRef = React.useRef(settings.mouseControls);
   const initMouseSensitivityRef = React.useRef(settings.mouseSensitivityPxPerCell);
+  const initTouchControlsEnabledRef = React.useRef(touchControlsEnabled);
   React.useEffect(() => {
     initAllow180Ref.current = settings.allow180;
   }, [settings.allow180]);
@@ -115,6 +127,9 @@ function GameCanvasInner(): JSX.Element {
   React.useEffect(() => {
     initMouseSensitivityRef.current = settings.mouseSensitivityPxPerCell;
   }, [settings.mouseSensitivityPxPerCell]);
+  React.useEffect(() => {
+    initTouchControlsEnabledRef.current = touchControlsEnabled;
+  }, [touchControlsEnabled]);
 
   // Initialize highscores storage once
   useEffect(() => {
@@ -123,6 +138,7 @@ function GameCanvasInner(): JSX.Element {
 
   const startTimeRef = useRef<number>(0);
   const submittedRef = useRef(false);
+  const restartImmediatelyRef = useRef(false);
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -147,14 +163,22 @@ function GameCanvasInner(): JSX.Element {
       enabled: initMouseControlsRef.current,
       allow180: initAllow180Ref.current,
       sensitivityPxPerCell:
-        initMouseSensitivityRef.current === 'auto' ? undefined : (initMouseSensitivityRef.current as number),
+        initMouseSensitivityRef.current === 'auto'
+          ? undefined
+          : (initMouseSensitivityRef.current as number),
     });
     // Set bounds element so MouseInput knows the canvas rect
     mouse.setBoundsElement(canvas);
     // Enable/disable and sensitivity based on current settings
     // no-op: Mouse already initialized with settings above
     mouseRef.current = mouse;
-    const multi = new MultiInput([kb, mouse]);
+    const touch = new TouchInput({
+      enabled: initTouchControlsEnabledRef.current,
+      allow180: initAllow180Ref.current,
+    });
+    touch.setBoundsElement(canvas);
+    touchRef.current = touch;
+    const multi = new MultiInput([kb, mouse, touch]);
     multiRef.current = multi;
     const host = new GameHost(canvas, engine, renderer, multi);
     hostRef.current = host;
@@ -182,30 +206,36 @@ function GameCanvasInner(): JSX.Element {
         }
         // Trigger line-flash (and optional particles) via effects
         effectsRef.current?.onLinesCleared(e.rows, performance.now());
-      }
-      else if (e.type === 'PieceSpawned') {
+      } else if (e.type === 'PieceSpawned') {
         // Read snapshot to know spawn position/rotation
         const s = engine.getSnapshot();
         if (s.active) {
-          effectsRef.current?.onPieceSpawned(s.active.id, s.active.position, s.active.rotation, performance.now());
+          effectsRef.current?.onPieceSpawned(
+            s.active.id,
+            s.active.position,
+            s.active.rotation,
+            performance.now(),
+          );
           // Arm mouse start-drag threshold: 1 cell + half piece width (in cells)
           const w = pieceWidthCells(s.active.id, s.active.rotation);
           mouseRef.current?.armStartDragThresholdForPiece(w);
         }
-      }
-      else if (e.type === 'PieceRotated') {
+      } else if (e.type === 'PieceRotated') {
         const s = engine.getSnapshot();
         if (s.active) {
           const w = pieceWidthCells(s.active.id, s.active.rotation);
           mouseRef.current?.armStartDragThresholdForPiece(w);
         }
-      }
-      else if (e.type === 'GameOver') {
+      } else if (e.type === 'GameOver') {
         setGameOver(true);
         setPaused(true);
         host.setPaused(true);
         // Crossfade back to menu music on game over
-        try { audio.crossfade('menu_ambient', 0.6); } catch { /* ignore in tests */ }
+        try {
+          audio.crossfade('menu_ambient', 0.6);
+        } catch {
+          /* ignore in tests */
+        }
         if (!submittedRef.current) {
           submittedRef.current = true;
           const duration = Math.max(0, Math.floor(performance.now() - startTimeRef.current));
@@ -229,10 +259,23 @@ function GameCanvasInner(): JSX.Element {
       }
     });
     host.start();
-    // Start paused until user input (overlay visible)
-    host.setPaused(true);
-    setStarted(false);
     submittedRef.current = false;
+    if (restartImmediatelyRef.current) {
+      restartImmediatelyRef.current = false;
+      setStarted(true);
+      setPaused(false);
+      host.setPaused(false);
+      startTimeRef.current = performance.now();
+      try {
+        audio.crossfade('theme_main', 0.8);
+      } catch {
+        /* ignore in tests */
+      }
+    } else {
+      // Start paused until user input (overlay visible)
+      host.setPaused(true);
+      setStarted(false);
+    }
     // Menu music now handled by AudioProvider after user gesture
     // Load current PB for the mode at start
     try {
@@ -262,9 +305,21 @@ function GameCanvasInner(): JSX.Element {
       allow180: settings.allow180,
       enabled: settings.mouseControls,
       sensitivityPxPerCell:
-        settings.mouseSensitivityPxPerCell === 'auto' ? undefined : settings.mouseSensitivityPxPerCell,
+        settings.mouseSensitivityPxPerCell === 'auto'
+          ? undefined
+          : settings.mouseSensitivityPxPerCell,
     });
-  }, [settings.das, settings.arr, settings.allow180, settings.bindings, settings.mouseControls, settings.mouseSensitivityPxPerCell]);
+    touchRef.current?.updateConfig({
+      allow180: settings.allow180,
+    });
+  }, [
+    settings.das,
+    settings.arr,
+    settings.allow180,
+    settings.bindings,
+    settings.mouseControls,
+    settings.mouseSensitivityPxPerCell,
+  ]);
 
   // Update effects enablement when animations toggle changes
   useEffect(() => {
@@ -311,16 +366,49 @@ function GameCanvasInner(): JSX.Element {
     linesRef.current = lines;
   }, [lines]);
 
+  const startGame = React.useCallback(() => {
+    setStarted(true);
+    hostRef.current?.setPaused(false);
+    startTimeRef.current = performance.now();
+    try {
+      audio.crossfade('theme_main', 0.8);
+    } catch {
+      /* ignore in tests */
+    }
+  }, [audio]);
+
+  /** Reset the current game and optionally start the replacement immediately. */
+  const restartGame = React.useCallback(
+    (startImmediately: boolean) => {
+      restartImmediatelyRef.current = startImmediately;
+      hostRef.current?.dispose();
+      hostRef.current = null;
+      setScore(0);
+      setLevel(0);
+      setLines(0);
+      setNextIds([]);
+      setHoldId(null);
+      setCanHold(true);
+      setGameOver(false);
+      setNewHigh(false);
+      setHighRank(undefined);
+      setTopHighscores([]);
+      setShowSettings(false);
+      setShowHelp(false);
+      setToasts([]);
+      setPaused(false);
+      setStarted(startImmediately);
+      setInstanceId((current) => current + 1);
+    },
+    [setToasts],
+  );
+
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       // Before start: any key starts the game
       if (!started) {
         ev.preventDefault();
-        setStarted(true);
-        hostRef.current?.setPaused(false);
-        startTimeRef.current = performance.now();
-        // Crossfade to gameplay theme
-        try { audio.crossfade('theme_main', 0.8); } catch { /* ignore in tests */ }
+        startGame();
         return;
       }
       if (ev.code === 'Escape') {
@@ -342,21 +430,11 @@ function GameCanvasInner(): JSX.Element {
         });
       }
     };
-    const onPointer = () => {
-      if (!started) {
-        setStarted(true);
-        hostRef.current?.setPaused(false);
-        startTimeRef.current = performance.now();
-        try { audio.crossfade('theme_main', 0.8); } catch { /* ignore in tests */ }
-      }
-    };
     window.addEventListener('keydown', onKey);
-    window.addEventListener('pointerdown', onPointer);
     return () => {
       window.removeEventListener('keydown', onKey);
-      window.removeEventListener('pointerdown', onPointer);
     };
-  }, [started, audio, showSettings, showHelp]);
+  }, [started, showSettings, showHelp, startGame]);
 
   // React to pause toggles: crossfade to menu when paused; back to theme when resuming.
   useEffect(() => {
@@ -364,28 +442,44 @@ function GameCanvasInner(): JSX.Element {
     try {
       if (paused) audio.crossfade('menu_ambient', 0.6);
       else audio.crossfade('theme_main', 0.6);
-    } catch { /* ignore in tests */ }
+    } catch {
+      /* ignore in tests */
+    }
   }, [paused, started, audio]);
 
+  const gameplayInputDisabled = !started || paused || gameOver || showSettings || showHelp;
+
+  useEffect(() => {
+    touchRef.current?.updateConfig({
+      enabled: touchControlsEnabled && !gameplayInputDisabled,
+    });
+  }, [gameplayInputDisabled, touchControlsEnabled]);
+
   return (
-    <div
-      style={{
-        position: 'relative',
-        width: '100vw',
-        height: '100vh',
-        overflow: 'hidden',
+    <GameLayout
+      canvasRef={canvasRef}
+      touchControlsEnabled={touchControlsEnabled}
+      pauseDisabled={!started || paused || gameOver}
+      onPause={() => {
+        setPaused(true);
+        hostRef.current?.setPaused(true);
       }}
+      hud={<HUD score={score} level={level} lines={lines} pb={pb} />}
+      next={<NextQueue next={nextIds} palette={palette} />}
+      hold={<HoldBox hold={holdId} canHold={canHold} palette={palette} />}
+      status={
+        <>
+          <StatusToasts toasts={toasts} />
+          <TouchOnboarding visible={touchControlsEnabled && started && !gameOver} />
+        </>
+      }
     >
-      <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
-      <HUD score={score} level={level} lines={lines} pb={pb} />
-      <NextQueue next={nextIds} palette={palette} />
-      <HoldBox hold={holdId} canHold={canHold} palette={palette} />
-      <StatusToasts toasts={toasts} />
-      <StartOverlay visible={!started && !gameOver} />
+      <StartOverlay visible={!started && !gameOver} onStart={startGame} />
       <PauseOverlay
-        visible={paused}
+        visible={paused && started && !gameOver}
         onOpenSettings={() => setShowSettings(true)}
         onOpenHelp={() => setShowHelp(true)}
+        onRestart={() => restartGame(true)}
         onResume={() => {
           setPaused(false);
           hostRef.current?.setPaused(false);
@@ -401,25 +495,9 @@ function GameCanvasInner(): JSX.Element {
         newHigh={newHigh}
         rank={highRank}
         top={topHighscores}
-        onRestart={() => {
-          hostRef.current?.dispose();
-          hostRef.current = null;
-          setScore(0);
-          setLevel(0);
-          setLines(0);
-          setNextIds([]);
-          setHoldId(null);
-          setCanHold(true);
-          setGameOver(false);
-          setNewHigh(false);
-          setHighRank(undefined);
-          setTopHighscores([]);
-          setPaused(false);
-          setStarted(false);
-          setInstanceId((n) => n + 1);
-        }}
+        onRestart={() => restartGame(false)}
       />
-    </div>
+    </GameLayout>
   );
 }
 
@@ -453,4 +531,30 @@ function useToastManager() {
     }, 1800);
   }, []);
   return { toasts, addToast, setToasts };
+}
+
+/**
+ * Resolve touch-control visibility and keep auto mode synchronized with
+ * viewport and coarse-pointer media-query changes.
+ */
+function useTouchControlsEnabled(mode: import('../state/settings').TouchControlsMode): boolean {
+  const [enabled, setEnabled] = React.useState(() =>
+    shouldEnableTouchControls(mode, detectTouchEnvironment()),
+  );
+
+  React.useEffect(() => {
+    const update = () => {
+      setEnabled(shouldEnableTouchControls(mode, detectTouchEnvironment()));
+    };
+    const coarsePointer = window.matchMedia?.('(pointer: coarse)');
+    update();
+    window.addEventListener('resize', update);
+    coarsePointer?.addEventListener?.('change', update);
+    return () => {
+      window.removeEventListener('resize', update);
+      coarsePointer?.removeEventListener?.('change', update);
+    };
+  }, [mode]);
+
+  return enabled;
 }

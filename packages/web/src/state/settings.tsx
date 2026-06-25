@@ -1,6 +1,9 @@
 import React from 'react';
 import type { KeyBinding } from '../input/types';
 
+/** User preference controlling when the mobile touch interface is visible. */
+export type TouchControlsMode = 'auto' | 'on' | 'off';
+
 export interface Settings {
   das: number; // ms
   arr: number; // ms
@@ -13,6 +16,8 @@ export interface Settings {
   mouseControls: boolean;
   /** Pixels-per-cell sensitivity or 'auto' to derive from layout. */
   mouseSensitivityPxPerCell: number | 'auto';
+  /** Automatic, forced, or disabled mobile touch controls. */
+  touchControlsMode: TouchControlsMode;
 }
 
 const KEY = 'tetris:settings:v1';
@@ -38,6 +43,7 @@ export function defaultSettings(): Settings {
     animations: animationsDefault,
     mouseControls: false,
     mouseSensitivityPxPerCell: 'auto',
+    touchControlsMode: 'auto',
     bindings: [
       { code: 'ArrowLeft', action: 'Left' },
       { code: 'ArrowRight', action: 'Right' },
@@ -58,7 +64,8 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings();
     const parsed: unknown = JSON.parse(raw);
-    const parsedObj: Record<string, unknown> = parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+    const parsedObj: Record<string, unknown> =
+      parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
     const merged = { ...defaultSettings(), ...(parsedObj as Partial<Settings>) } as Settings;
     // Ensure a 180° binding exists to support updated defaults
     if (!merged.bindings.some((b) => b.action === 'Rotate180')) {
@@ -83,6 +90,15 @@ export function loadSettings(): Settings {
     }
     if (!('mouseSensitivityPxPerCell' in parsedObj)) {
       merged.mouseSensitivityPxPerCell = 'auto';
+      saveSettings(merged);
+    }
+    if (
+      !('touchControlsMode' in parsedObj) ||
+      (merged.touchControlsMode !== 'auto' &&
+        merged.touchControlsMode !== 'on' &&
+        merged.touchControlsMode !== 'off')
+    ) {
+      merged.touchControlsMode = 'auto';
       saveSettings(merged);
     }
     return merged;
@@ -116,7 +132,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }): J
     });
   }, []);
   return (
-    <SettingsContext.Provider value={{ settings, setSettings }}>{children}</SettingsContext.Provider>
+    <SettingsContext.Provider value={{ settings, setSettings }}>
+      {children}
+    </SettingsContext.Provider>
   );
 }
 

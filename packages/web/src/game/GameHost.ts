@@ -22,6 +22,7 @@ export class GameHost {
   private lastCssWidth = 0;
   private lastCssHeight = 0;
   private lastDpr = 0;
+  private resumeEvents: InputEvent[] = [];
 
   /**
    * @param canvas - target canvas element
@@ -68,6 +69,9 @@ export class GameHost {
       // Drop accumulated time and reset input repeats
       this.acc = 0;
       this.input.reset?.();
+      this.resumeEvents = this.input
+        .poll(this.now())
+        .filter((event) => event.type === 'SoftDropStop');
       this.input.detach();
       // Clear any unprocessed inputs inside the engine
       // Cast to allow optional method presence without coupling to core type in web
@@ -76,6 +80,8 @@ export class GameHost {
       // On resume, make sure we don't process a large dt chunk
       this.input.reset?.();
       this.input.attach(this.attachTarget);
+      for (const event of this.resumeEvents) this.engine.enqueueInput(event);
+      this.resumeEvents = [];
       this.lastTime = this.now();
     }
   }

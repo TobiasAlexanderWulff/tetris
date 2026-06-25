@@ -5,7 +5,13 @@ import React from 'react';
  * The panel height is constrained for small viewports with scrollable content
  * so that actions remain visible.
  */
-export function PauseOverlay(props: { visible: boolean; onResume?: () => void; onOpenSettings?: () => void; onOpenHelp?: () => void }): JSX.Element | null {
+export function PauseOverlay(props: {
+  visible: boolean;
+  onResume?: () => void;
+  onRestart: () => void;
+  onOpenSettings?: () => void;
+  onOpenHelp?: () => void;
+}): JSX.Element | null {
   if (!props.visible) return null;
   const overlay: React.CSSProperties = {
     position: 'absolute',
@@ -21,10 +27,12 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
     background: 'var(--panel-bg, rgba(15,15,18,0.9))',
     padding: '16px 20px',
     borderRadius: 8,
-    fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
     textAlign: 'center',
-    minWidth: 240,
+    minWidth: 0,
     width: 'min(92vw, 480px)',
+    boxSizing: 'border-box',
     maxHeight: 'calc(100dvh - 32px)',
     display: 'flex',
     flexDirection: 'column',
@@ -55,42 +63,42 @@ export function PauseOverlay(props: { visible: boolean; onResume?: () => void; o
         <div style={content} aria-label="pause-content">
           <div style={{ opacity: 0.9 }}>Press Escape to resume</div>
           <div style={btnCol}>
-          <div
-            style={btn}
-            tabIndex={0}
-            onClick={props.onResume}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') props.onResume?.();
-            }}
-            role="button"
-            aria-label="resume"
-          >
-            Resume
-          </div>
-          <div
-            style={{ ...btn, background: '#475569' }}
-            tabIndex={0}
-            onClick={props.onOpenSettings}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') props.onOpenSettings?.();
-            }}
-            role="button"
-            aria-label="open-settings"
-          >
-            Settings
-          </div>
-          <div
-            style={{ ...btn, background: '#52525b' }}
-            tabIndex={0}
-            onClick={props.onOpenHelp}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') props.onOpenHelp?.();
-            }}
-            role="button"
-            aria-label="open-help"
-          >
-            Help
-          </div>
+            <button
+              type="button"
+              className="overlay-action"
+              style={btn}
+              onClick={props.onResume}
+              aria-label="resume"
+            >
+              Resume
+            </button>
+            <button
+              type="button"
+              className="overlay-action"
+              style={{ ...btn, background: '#7c2d12' }}
+              onClick={props.onRestart}
+              aria-label="restart"
+            >
+              Restart
+            </button>
+            <button
+              type="button"
+              className="overlay-action"
+              style={{ ...btn, background: '#475569' }}
+              onClick={props.onOpenSettings}
+              aria-label="open-settings"
+            >
+              Settings
+            </button>
+            <button
+              type="button"
+              className="overlay-action"
+              style={{ ...btn, background: '#52525b' }}
+              onClick={props.onOpenHelp}
+              aria-label="open-help"
+            >
+              Help
+            </button>
           </div>
         </div>
       </div>

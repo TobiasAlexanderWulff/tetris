@@ -4,6 +4,7 @@ import { GameHost } from './GameHost';
 import { createEngine } from '@tetris/core';
 import type { IInputSource, IRenderer } from './types';
 import type { InputEvent } from '@tetris/core';
+import type { Engine } from '@tetris/core';
 
 class TestRenderer implements IRenderer {
   width = 0;
@@ -150,6 +151,57 @@ describe('GameHost', () => {
     }
     const y2 = engine.getSnapshot().active!.position.y;
     expect(y2).toBe(y1);
+    host.dispose();
+  });
+
+  it('preserves a reset-generated soft drop stop for resume', () => {
+    const container = document.createElement('div');
+    Object.defineProperty(container, 'clientWidth', { get: () => 200 });
+    Object.defineProperty(container, 'clientHeight', { get: () => 400 });
+    document.body.appendChild(container);
+    const canvas = document.createElement('canvas');
+    container.appendChild(canvas);
+    const renderer = new TestRenderer();
+    const enqueued: InputEvent[] = [];
+    const engine = {
+      enqueueInput(event: InputEvent) {
+        enqueued.push(event);
+      },
+      clearPendingInputs() {
+        enqueued.length = 0;
+      },
+      update() {},
+      getSnapshot() {
+        return { active: null };
+      },
+    } as unknown as Engine;
+    const input: IInputSource = {
+      attach() {},
+      detach() {},
+      reset() {
+        pending = [{ type: 'SoftDropStop', at: 0 }];
+      },
+      poll() {
+        const events = pending;
+        pending = [];
+        return events;
+      },
+    };
+    let pending: InputEvent[] = [];
+    const host = new GameHost(
+      canvas,
+      engine,
+      renderer,
+      input,
+      () => 1,
+      () => 25,
+    );
+
+    host.start();
+    host.setPaused(true);
+    host.setPaused(false);
+
+    expect(enqueued.map((event) => event.type)).toEqual(['SoftDropStop']);
     host.dispose();
   });
 });
