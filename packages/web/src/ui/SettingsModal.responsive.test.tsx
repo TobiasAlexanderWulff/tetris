@@ -16,5 +16,9 @@ describe('SettingsModal (responsive)', () => {
     const content = screen.getByLabelText('settings-content') as HTMLElement;
     expect(content).toBeTruthy();
     expect(content.style.overflowY === 'auto' || content.style.overflowY === 'scroll').toBe(true);
+    const panel = screen.getByLabelText('settings').firstElementChild as HTMLElement;
+    expect(['0', '0px']).toContain(panel.style.minWidth);
+    expect(panel.style.boxSizing).toBe('border-box');
+    expect((screen.getByLabelText('Touch Controls') as HTMLSelectElement).value).toBe('auto');
   });
 });

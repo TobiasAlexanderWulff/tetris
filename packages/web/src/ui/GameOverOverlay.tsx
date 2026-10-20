@@ -45,8 +45,9 @@ export function GameOverOverlay({
     background: 'var(--panel-bg, rgba(15,15,18,0.96))',
     padding: 16,
     borderRadius: 8,
-    minWidth: 320,
+    minWidth: 0,
     width: 'min(92vw, 800px)',
+    boxSizing: 'border-box',
     maxHeight: 'calc(100dvh - 32px)',
     display: 'flex',
     flexDirection: 'column',
@@ -55,8 +56,18 @@ export function GameOverOverlay({
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
   };
   const statRow: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 };
-  const btn: React.CSSProperties = { padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer' };
-  const btnRow: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' };
+  const btn: React.CSSProperties = {
+    padding: '8px 12px',
+    background: '#334155',
+    borderRadius: 6,
+    cursor: 'pointer',
+  };
+  const btnRow: React.CSSProperties = {
+    display: 'flex',
+    gap: 8,
+    marginTop: 16,
+    justifyContent: 'flex-end',
+  };
   const banner: React.CSSProperties = {
     background: '#14532d',
     color: '#ecfdf5',
@@ -87,7 +98,9 @@ export function GameOverOverlay({
           </div>
           {/* Removed compact Top Scores list in favor of table below */}
           {newHigh ? (
-            <div style={banner} aria-label="new-highscore">Score ranked{typeof rank === 'number' ? ` #${rank}` : ''}!</div>
+            <div style={banner} aria-label="new-highscore">
+              Score ranked{typeof rank === 'number' ? ` #${rank}` : ''}!
+            </div>
           ) : null}
 
           {top && top.length ? (
@@ -99,31 +112,25 @@ export function GameOverOverlay({
         </div>
 
         <div style={btnRow}>
-          <div
+          <button
+            type="button"
+            className="overlay-action"
             style={{ ...btn, background: '#475569' }}
-            role="button"
-            tabIndex={0}
             onClick={onRestart}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onRestart();
-            }}
             aria-label="restart"
           >
             Restart
-          </div>
+          </button>
           {onClose ? (
-            <div
+            <button
+              type="button"
+              className="overlay-action"
               style={btn}
-              role="button"
-              tabIndex={0}
               onClick={onClose}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') onClose();
-              }}
               aria-label="close-game-over"
             >
               Close
-            </div>
+            </button>
           ) : null}
         </div>
       </div>

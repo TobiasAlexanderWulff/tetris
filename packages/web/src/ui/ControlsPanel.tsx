@@ -111,16 +111,21 @@ export function ControlsPanel(): JSX.Element {
         <div id="controls-heading" style={{ position: 'absolute', left: -9999, top: -9999 }}>
           Controls
         </div>
-        <div style={grid}>
+        <div className="controls-binding-row controls-binding-row--header" style={grid}>
           <div style={{ opacity: 0.7 }}>Action</div>
           <div style={{ opacity: 0.7 }}>Binding</div>
           <div />
         </div>
         {ACTIONS.map((a) => (
-          <div key={a} style={grid}>
+          <div className="controls-binding-row" key={a} style={grid}>
             <div>{ACTION_LABEL[a]}</div>
-            <div style={pill} aria-live="polite" aria-atomic="true">
-              {capturing === a ? 'Press any key…' : currentCodeFor(a) ?? 'Unbound'}
+            <div
+              className="controls-binding-pill"
+              style={pill}
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {capturing === a ? 'Press any key…' : (currentCodeFor(a) ?? 'Unbound')}
             </div>
             <button
               type="button"

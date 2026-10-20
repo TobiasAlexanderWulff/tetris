@@ -18,10 +18,26 @@ function makeCanvas(): HTMLDivElement {
   const el = document.createElement('div');
   // Provide deterministic size for layout (10x20 → 20px cell if 200x400)
   Object.defineProperty(el, 'getBoundingClientRect', {
-    value: () => ({ left: 0, top: 0, right: 200, bottom: 400, width: 200, height: 400, x: 0, y: 0, toJSON: () => '' }),
+    value: () => ({
+      left: 0,
+      top: 0,
+      right: 200,
+      bottom: 400,
+      width: 200,
+      height: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => '',
+    }),
   });
   document.body.appendChild(el);
   return el;
+}
+
+function touchPointer(type: string, init: MouseEventInit): PointerEvent {
+  const event = new PointerEvent(type, init);
+  Object.defineProperty(event, 'pointerType', { value: 'touch' });
+  return event;
 }
 
 describe('MouseInput', () => {
@@ -115,5 +131,16 @@ describe('MouseInput', () => {
     el.dispatchEvent(new PointerEvent('pointerdown', { button: 2, bubbles: true }));
     const evts = mi.poll(1400);
     expect(evts.map((e) => e.type)).toEqual(['Hold']);
+  });
+
+  it('ignores touch pointer events', () => {
+    const mi = new MouseInput({ enabled: true, allow180: true, deadzonePx: 0 });
+    mi.attach(el);
+
+    el.dispatchEvent(touchPointer('pointermove', { clientX: 100, clientY: 100, bubbles: true }));
+    el.dispatchEvent(touchPointer('pointermove', { clientX: 140, clientY: 100, bubbles: true }));
+    el.dispatchEvent(touchPointer('pointerdown', { button: 0, bubbles: true }));
+
+    expect(mi.poll(1500)).toEqual([]);
   });
 });

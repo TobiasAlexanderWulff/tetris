@@ -8,3 +8,4 @@ coverage/
 *.tsbuildinfo
 .tmp_music_build
 .vscode/
+.superpowers/

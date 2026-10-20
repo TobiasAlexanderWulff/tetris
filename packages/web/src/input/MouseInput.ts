@@ -34,7 +34,9 @@ export class MouseInput implements IInputSource {
   private attached = false;
   private eventTarget: HTMLElement | Window | null = null;
   private boundsEl: HTMLElement | null = null;
-  private cfg: Required<Omit<MouseConfig, 'sensitivityPxPerCell'>> & { sensitivityPxPerCell?: number };
+  private cfg: Required<Omit<MouseConfig, 'sensitivityPxPerCell'>> & {
+    sensitivityPxPerCell?: number;
+  };
 
   // Pending one-shot events delivered on next poll
   private pending: InputEvent['type'][] = [];
@@ -159,6 +161,7 @@ export class MouseInput implements IInputSource {
   // --- Event handlers ---
 
   private onPointerMove = (ev: PointerEvent): void => {
+    if (ev.pointerType === 'touch') return;
     if (!this.cfg.enabled || !this.boundsEl) return;
     const rect = this.boundsEl.getBoundingClientRect();
     const x = ev.clientX;
@@ -223,13 +226,17 @@ export class MouseInput implements IInputSource {
       const inward = this.guardSide === 'left' ? dx > 0 : dx < 0;
       if (
         inward &&
-        ((this.guardSide === 'left' && x <= leftGuard) || (this.guardSide === 'right' && x >= rightGuard))
+        ((this.guardSide === 'left' && x <= leftGuard) ||
+          (this.guardSide === 'right' && x >= rightGuard))
       ) {
         this.accumDx = 0;
         return;
       }
       // Disable guard once we've crossed the guard line into the board
-      if ((this.guardSide === 'left' && x > leftGuard) || (this.guardSide === 'right' && x < rightGuard)) {
+      if (
+        (this.guardSide === 'left' && x > leftGuard) ||
+        (this.guardSide === 'right' && x < rightGuard)
+      ) {
         this.guardSide = null;
       }
     }
@@ -262,6 +269,7 @@ export class MouseInput implements IInputSource {
   };
 
   private onPointerDown = (ev: PointerEvent): void => {
+    if (ev.pointerType === 'touch') return;
     if (!this.cfg.enabled) return;
     if (ev.button === 0) {
       // Left
@@ -293,6 +301,7 @@ export class MouseInput implements IInputSource {
   };
 
   private onPointerUp = (ev: PointerEvent): void => {
+    if (ev.pointerType === 'touch') return;
     if (!this.cfg.enabled) return;
     if (ev.button === 0) {
       this.leftDown = false;

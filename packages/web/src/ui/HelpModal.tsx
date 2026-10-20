@@ -23,9 +23,10 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
     borderRadius: 8,
     fontFamily:
       'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica Neue, Arial',
-    minWidth: 360,
+    minWidth: 0,
     maxWidth: 640,
     width: 'min(92vw, 640px)',
+    boxSizing: 'border-box',
     maxHeight: 'calc(100dvh - 32px)',
     display: 'flex',
     flexDirection: 'column',
@@ -33,8 +34,18 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
   };
   const h: React.CSSProperties = { margin: '6px 0', fontWeight: 600, fontSize: 14 };
   const dl: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 6 };
-  const btnRow: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' };
-  const btn: React.CSSProperties = { padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer' };
+  const btnRow: React.CSSProperties = {
+    display: 'flex',
+    gap: 8,
+    marginTop: 16,
+    justifyContent: 'flex-end',
+  };
+  const btn: React.CSSProperties = {
+    padding: '8px 12px',
+    background: '#334155',
+    borderRadius: 6,
+    cursor: 'pointer',
+  };
   const content: React.CSSProperties = { flex: '1 1 auto', minHeight: 0, overflowY: 'auto' };
 
   return (
@@ -42,61 +53,73 @@ export function HelpModal({ onClose }: { onClose: () => void }): JSX.Element {
       <div style={panel}>
         <div style={{ fontSize: 18, marginBottom: 8 }}>Help</div>
         <div style={content} aria-label="help-content">
-        <div style={h}>Controls</div>
-        <div style={dl}>
-          <div>Move</div>
-          <div>Arrow Left / Arrow Right</div>
-          <div>Rotate</div>
-          <div>Arrow Up (CW), Z (CCW), X (CW), C (180° for J/L/T)</div>
-          <div>Soft Drop</div>
-          <div>Arrow Down (faster fall)</div>
-          <div>Hard Drop</div>
-          <div>Space (instant drop + lock)</div>
-          <div>Hold</div>
-          <div>Shift (swap with hold piece)</div>
-          <div>Pause</div>
-          <div>Escape (open Pause/Settings/Help)</div>
-        </div>
-        <div style={h}>Mouse Controls</div>
-        <div style={dl}>
-          <div>Move</div>
-          <div>Mouse move horizontally over board</div>
-          <div>Rotate</div>
-          <div>Wheel up (CCW), wheel down (CW)</div>
-          <div>180°</div>
-          <div>Middle click (if enabled)</div>
-          <div>Soft Drop</div>
-          <div>Right click and hold</div>
-          <div>Hard Drop</div>
-          <div>Left click</div>
-          <div>Hold</div>
-          <div>Left + Right click together</div>
-        </div>
-        <div style={h}>Scoring Basics</div>
-        <div>
-          Single = 100, Double = 300, Triple = 500, Tetris = 800. Drop bonuses: soft +1/cell, hard +2/cell.
-          Back-to-Back multiplies Tetris. Combos add incremental bonuses.
-        </div>
-        <div style={h}>Tips</div>
-        <ul style={{ margin: 0, paddingLeft: 18 }}>
-          <li>Use Hold to save key pieces (e.g., I for Tetris).</li>
-          <li>Soft drop to adjust placement; hard drop to commit quickly.</li>
-          <li>Change DAS/ARR and theme in Settings for comfort and visibility.</li>
-        </ul>
+          <div style={h}>Controls</div>
+          <div className="help-control-grid" style={dl}>
+            <div>Move</div>
+            <div>Arrow Left / Arrow Right</div>
+            <div>Rotate</div>
+            <div>Arrow Up (CW), Z (CCW), X (CW), C (180° for J/L/T)</div>
+            <div>Soft Drop</div>
+            <div>Arrow Down (faster fall)</div>
+            <div>Hard Drop</div>
+            <div>Space (instant drop + lock)</div>
+            <div>Hold</div>
+            <div>Shift (swap with hold piece)</div>
+            <div>Pause</div>
+            <div>Escape (open Pause/Settings/Help)</div>
+          </div>
+          <div style={h}>Mouse Controls</div>
+          <div className="help-control-grid" style={dl}>
+            <div>Move</div>
+            <div>Mouse move horizontally over board</div>
+            <div>Rotate</div>
+            <div>Wheel up (CCW), wheel down (CW)</div>
+            <div>180°</div>
+            <div>Middle click (if enabled)</div>
+            <div>Soft Drop</div>
+            <div>Right click and hold</div>
+            <div>Hard Drop</div>
+            <div>Left click</div>
+            <div>Hold</div>
+            <div>Left + Right click together</div>
+          </div>
+          <div style={h}>Touch Controls</div>
+          <div className="help-control-grid" style={dl}>
+            <div>Move</div>
+            <div>Drag horizontally over the board in cell-sized steps</div>
+            <div>Soft Drop</div>
+            <div>Drag down slowly and hold; release to stop</div>
+            <div>Rotate</div>
+            <div>Tap the left board half for CCW or right half for CW</div>
+            <div>Hard Drop</div>
+            <div>Flick down quickly</div>
+            <div>Hold</div>
+            <div>Flick up quickly</div>
+            <div>Pause</div>
+            <div>Tap the pause button in the compact HUD</div>
+          </div>
+          <div style={h}>Scoring Basics</div>
+          <div>
+            Single = 100, Double = 300, Triple = 500, Tetris = 800. Drop bonuses: soft +1/cell, hard
+            +2/cell. Back-to-Back multiplies Tetris. Combos add incremental bonuses.
+          </div>
+          <div style={h}>Tips</div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            <li>Use Hold to save key pieces (e.g., I for Tetris).</li>
+            <li>Soft drop to adjust placement; hard drop to commit quickly.</li>
+            <li>Change DAS/ARR and theme in Settings for comfort and visibility.</li>
+          </ul>
         </div>
         <div style={btnRow}>
-          <div
+          <button
+            type="button"
+            className="overlay-action"
             style={btn}
             onClick={onClose}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') onClose();
-            }}
             aria-label="close-help"
           >
             Close
-          </div>
+          </button>
         </div>
       </div>
     </div>
