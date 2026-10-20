@@ -378,12 +378,18 @@ export class MouseInput implements IInputSource {
     }, this.chordWindowMs);
   }
 
+  /**
+   * Resolve a pending single click on pointer up.
+   *
+   * The chord window delays left-click HardDrop so a left+right chord can be
+   * recognized as Hold. When the button is released before the timer fires,
+   * the delayed action must run now instead of being dropped.
+   */
   private resolvePendingSingle(action: 'HardDrop' | 'SoftDropStart'): void {
     if (this.pendingClickAction === action) {
-      // The timer will fire soon; allow it. If we want to flush immediately, uncomment below.
-      // this.queue(action, performance.now());
       this.pendingClickAction = null;
       this.cancelChordTimer();
+      this.queue(action);
     }
   }
 

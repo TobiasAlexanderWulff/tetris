@@ -123,6 +123,31 @@ describe('MouseInput', () => {
     expect(evts.map((e) => e.type)).toEqual(['SoftDropStop']);
   });
 
+  it('emits HardDrop on a quick left click', () => {
+    const mi = new MouseInput({ enabled: true, allow180: false });
+    mi.attach(el);
+    el.dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true }));
+
+    expect(mi.poll(1350).map((e) => e.type)).toEqual(['HardDrop']);
+  });
+
+  it('emits exactly one HardDrop when held past the chord window', () => {
+    vi.useFakeTimers();
+    try {
+      const mi = new MouseInput({ enabled: true, allow180: false });
+      mi.attach(el);
+      el.dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true }));
+      vi.advanceTimersByTime(80);
+      expect(mi.poll(1360).map((e) => e.type)).toEqual(['HardDrop']);
+
+      el.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true }));
+      expect(mi.poll(1361)).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('left+right chord emits hold and suppresses singles', async () => {
     const mi = new MouseInput({ enabled: true, allow180: true });
     mi.attach(el);
@@ -131,6 +156,11 @@ describe('MouseInput', () => {
     el.dispatchEvent(new PointerEvent('pointerdown', { button: 2, bubbles: true }));
     const evts = mi.poll(1400);
     expect(evts.map((e) => e.type)).toEqual(['Hold']);
+
+    // Releasing the buttons must not turn the chord into a HardDrop.
+    el.dispatchEvent(new PointerEvent('pointerup', { button: 0, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointerup', { button: 2, bubbles: true }));
+    expect(mi.poll(1401)).toEqual([]);
   });
 
   it('ignores touch pointer events', () => {
