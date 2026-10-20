@@ -45,11 +45,16 @@ export class WebAudioAdapter implements IAudioAdapter {
   async preload(manifest: AudioManifest): Promise<void> {
     this.manifest = manifest;
     // No-op if empty
-    if (!manifest || (!Object.keys(manifest.sfx).length && !Object.keys(manifest.music).length)) return;
+    if (!manifest || (!Object.keys(manifest.sfx).length && !Object.keys(manifest.music).length))
+      return;
     const ctx = this.ensureCtx();
     const entries: [string, string][] = [
-      ...Object.entries(manifest.sfx).map(([id, def]) => [`sfx:${id}`, def.url] as [string, string]),
-      ...Object.entries(manifest.music).map(([id, def]) => [`music:${id}`, def.url] as [string, string]),
+      ...Object.entries(manifest.sfx).map(
+        ([id, def]) => [`sfx:${id}`, def.url] as [string, string],
+      ),
+      ...Object.entries(manifest.music).map(
+        ([id, def]) => [`music:${id}`, def.url] as [string, string],
+      ),
     ];
     // Fetch in parallel; allow failures to be caught per asset.
     await Promise.allSettled(
@@ -64,7 +69,7 @@ export class WebAudioAdapter implements IAudioAdapter {
           // eslint-disable-next-line no-console
           console.warn('[audio] failed to load', url, err);
         }
-      })
+      }),
     );
   }
 
@@ -105,28 +110,21 @@ export class WebAudioAdapter implements IAudioAdapter {
     };
   }
 
-  /** Start a music track, replacing any existing one. */
-  startMusic(id: string, opts: { loop?: boolean; startAt?: number }): void {
-    if (!this.manifest) return;
-    const ctx = this.ensureCtx();
+  /**
+   * Create and start a music source without replacing the current track.
+   * Callers decide whether the source replaces or overlaps the current one.
+   */
+  private createMusicSource(
+    id: string,
+    opts: { loop?: boolean; startAt?: number },
+  ): { id: string; node: AudioBufferSourceNode; gain: GainNode } | null {
+    if (!this.manifest) return null;
     const def = this.manifest.music[id];
-    if (!def) return;
-    const key = `music:${id}`;
-    const buf = this.buffers.get(key);
-    if (!buf) return;
+    if (!def) return null;
+    const buf = this.buffers.get(`music:${id}`);
+    if (!buf) return null;
 
-    // Stop previous
-    if (this.currentMusic) {
-      try {
-        this.currentMusic.node.stop();
-        this.currentMusic.node.disconnect();
-        this.currentMusic.gain.disconnect();
-      } catch {
-        /* ignore */
-      }
-      this.currentMusic = null;
-    }
-
+    const ctx = this.ensureCtx();
     const src = ctx.createBufferSource();
     src.buffer = buf;
     const g = ctx.createGain();
@@ -138,7 +136,27 @@ export class WebAudioAdapter implements IAudioAdapter {
     if (def.loopStart != null) src.loopStart = def.loopStart;
     if (def.loopEnd != null) src.loopEnd = def.loopEnd;
     src.start(ctx.currentTime, opts.startAt ?? 0);
-    this.currentMusic = { id, node: src, gain: g };
+    return { id, node: src, gain: g };
+  }
+
+  /** Stop and disconnect a music track immediately. */
+  private disposeTrack(track: { node: AudioBufferSourceNode; gain: GainNode }): void {
+    try {
+      track.node.stop();
+      track.node.disconnect();
+      track.gain.disconnect();
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** Start a music track, replacing any existing one. */
+  startMusic(id: string, opts: { loop?: boolean; startAt?: number }): void {
+    // Validate/start the replacement first so a bad id leaves current music alone.
+    const next = this.createMusicSource(id, opts);
+    if (!next) return;
+    if (this.currentMusic) this.disposeTrack(this.currentMusic);
+    this.currentMusic = next;
   }
 
   /** Stop current music, optionally fading out. */
@@ -166,31 +184,27 @@ export class WebAudioAdapter implements IAudioAdapter {
         }
       }, fade * 1000);
     } else {
-      try {
-        node.stop();
-        node.disconnect();
-        gain.disconnect();
-      } catch {
-        /* ignore */
-      }
+      this.disposeTrack(this.currentMusic);
     }
     this.currentMusic = null;
   }
 
   /** Crossfade from current track to a new one over the given seconds. */
   crossfade(toId: string, seconds: number): void {
-    const ctx = this.ensureCtx();
-    const prev = this.currentMusic;
-    // Start new first
-    this.startMusic(toId, {});
-    const next = this.currentMusic;
+    // Start the replacement without touching the current track; the previous
+    // track must keep playing while both gains ramp.
+    const next = this.createMusicSource(toId, {});
     if (!next) return;
+    const prev = this.currentMusic;
+    this.currentMusic = next;
+    const ctx = this.ensureCtx();
     const dur = Math.max(0.1, seconds);
     const now = ctx.currentTime;
+    const targetGain = this.manifest?.music[toId]?.gain ?? 1;
     try {
       next.gain.gain.cancelScheduledValues(now);
       next.gain.gain.setValueAtTime(0, now);
-      next.gain.gain.linearRampToValueAtTime(1, now + dur);
+      next.gain.gain.linearRampToValueAtTime(targetGain, now + dur);
     } catch {
       /* ignore */
     }
@@ -203,15 +217,12 @@ export class WebAudioAdapter implements IAudioAdapter {
         /* ignore */
       }
       // Stop only the previous node after the fade, without touching current
-      setTimeout(() => {
-        try {
-          prev.node.stop();
-          prev.node.disconnect();
-          prev.gain.disconnect();
-        } catch {
-          /* ignore */
-        }
-      }, dur * 1000 + 30);
+      setTimeout(
+        () => {
+          this.disposeTrack(prev);
+        },
+        dur * 1000 + 30,
+      );
     }
   }
 
