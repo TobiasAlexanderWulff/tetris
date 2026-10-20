@@ -423,6 +423,8 @@ function GameCanvasInner(): JSX.Element {
           setShowHelp(false);
           return;
         }
+        // The engine has no active piece after game over; never resume it.
+        if (gameOver) return;
         setPaused((p) => {
           const next = !p;
           hostRef.current?.setPaused(next);
@@ -434,7 +436,7 @@ function GameCanvasInner(): JSX.Element {
     return () => {
       window.removeEventListener('keydown', onKey);
     };
-  }, [started, showSettings, showHelp, startGame]);
+  }, [started, showSettings, showHelp, gameOver, startGame]);
 
   // React to pause toggles: crossfade to menu when paused; back to theme when resuming.
   useEffect(() => {

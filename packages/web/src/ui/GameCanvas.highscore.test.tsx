@@ -1,7 +1,10 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+
+// Shared mock state, declared via vi.hoisted so the hoisted vi.mock factory can use it.
+const hostState = vi.hoisted(() => ({ pausedCalls: [] as boolean[] }));
 
 // Mock highscore API to observe calls
 vi.mock('../highscore', () => {
@@ -36,14 +39,19 @@ vi.mock('../game/GameHost', () => {
   }
 
   class GameHostMock {
-    constructor(public canvas: HTMLCanvasElement, public engine: EngineMock) {}
+    constructor(
+      public canvas: HTMLCanvasElement,
+      public engine: EngineMock,
+    ) {}
     start() {
       // trigger game over soon
       setTimeout(() => {
         this._emit({ type: 'GameOver' });
       }, 0);
     }
-    setPaused() {}
+    setPaused(p: boolean) {
+      hostState.pausedCalls.push(p);
+    }
     dispose() {}
     // Helpers for tests
     _emit: (e: EngineEvent) => void = () => {};
@@ -114,7 +122,9 @@ vi.mock('../input/KeyboardInput', () => ({
     attach() {}
     detach() {}
     reset() {}
-    poll() { return []; }
+    poll() {
+      return [];
+    }
     updateConfig() {}
   },
 }));
@@ -133,10 +143,28 @@ import { maybeSubmit } from '../highscore';
 describe('GameCanvas highscore integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hostState.pausedCalls.length = 0;
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('submits a highscore on Game Over', async () => {
     render(<GameCanvas />);
     await waitFor(() => expect(maybeSubmit).toHaveBeenCalledTimes(1));
+  });
+
+  it('ignores Escape after game over instead of resuming the host', async () => {
+    render(<GameCanvas />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
+    await screen.findByLabelText('game-over');
+
+    hostState.pausedCalls.length = 0;
+    fireEvent.keyDown(window, { code: 'Escape', key: 'Escape' });
+
+    expect(hostState.pausedCalls).toEqual([]);
+    expect(screen.getByLabelText('game-over')).toBeTruthy();
+    expect(screen.queryByLabelText('pause-overlay')).toBeNull();
   });
 });

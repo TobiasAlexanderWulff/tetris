@@ -205,7 +205,13 @@ export class Engine {
         break;
       case 'Rotate180':
         // Ignore 180° for pieces where 180 has no visible effect (I, O, S, Z)
-        if (this.s.active && (this.s.active.id === 'I' || this.s.active.id === 'O' || this.s.active.id === 'S' || this.s.active.id === 'Z')) {
+        if (
+          this.s.active &&
+          (this.s.active.id === 'I' ||
+            this.s.active.id === 'O' ||
+            this.s.active.id === 'S' ||
+            this.s.active.id === 'Z')
+        ) {
           break;
         }
         this.tryRotate(+2);
@@ -226,6 +232,8 @@ export class Engine {
   }
 
   private fixedUpdate(dtMs: number): void {
+    // No active piece means the game is over; there is nothing to simulate.
+    if (!this.s.active) return;
     // Gravity progression
     const baseCps = this.lookupGravityCps(this.s.level);
     const cps = this.s.softDropping ? baseCps * 20 : baseCps;
@@ -266,7 +274,8 @@ export class Engine {
   private _gravFrac = 0;
 
   private gravityStep(): void {
-    const a = this.s.active!;
+    const a = this.s.active;
+    if (!a) return;
     const nextPos = { x: a.position.x, y: a.position.y + 1 };
     if (!collides(this.s.spec, this.s.grid, a.id, a.rotation, nextPos)) {
       this.s.active = { ...a, position: nextPos };
@@ -280,7 +289,8 @@ export class Engine {
   }
 
   private tryShift(dx: number): void {
-    const a = this.s.active!;
+    const a = this.s.active;
+    if (!a) return;
     const pos = { x: a.position.x + dx, y: a.position.y };
     if (!collides(this.s.spec, this.s.grid, a.id, a.rotation, pos)) {
       this.s.active = { ...a, position: pos };
@@ -290,7 +300,8 @@ export class Engine {
   }
 
   private tryRotate(delta: number): void {
-    const a = this.s.active!;
+    const a = this.s.active;
+    if (!a) return;
     const to = applyRotation(a.rotation, delta);
     // Determine kick table; for 180° rotation use a dedicated set of kicks
     let kicks = getKickTable(a.id)[`${a.rotation}-${to}` as const] ?? undefined;
@@ -320,7 +331,10 @@ export class Engine {
         { x: 1, y: -1 },
         { x: -1, y: -1 },
       ] as const;
-      kicks = (a.id === 'I' ? (i180 as readonly { x: number; y: number }[]) : (basic180 as readonly { x: number; y: number }[]));
+      kicks =
+        a.id === 'I'
+          ? (i180 as readonly { x: number; y: number }[])
+          : (basic180 as readonly { x: number; y: number }[]);
     }
     for (const k of kicks) {
       const pos = { x: a.position.x + k.x, y: a.position.y + k.y };
@@ -335,7 +349,9 @@ export class Engine {
   }
 
   private hardDrop(): void {
-    let a = this.s.active!;
+    const active = this.s.active;
+    if (!active) return;
+    let a = active;
     for (;;) {
       const pos = { x: a.position.x, y: a.position.y + 1 };
       if (collides(this.s.spec, this.s.grid, a.id, a.rotation, pos)) break;
