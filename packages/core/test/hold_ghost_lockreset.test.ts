@@ -42,7 +42,7 @@ describe('hold, ghost, and lock reset behavior', () => {
     };
     // Compute expected ghost via collision checks
     let y = a.position.y;
-    while (true) {
+    for (;;) {
       const pos = { x: a.position.x, y: y + 1 };
       if (collides(spec, s.board, a.id, a.rotation, pos)) break;
       y++;
