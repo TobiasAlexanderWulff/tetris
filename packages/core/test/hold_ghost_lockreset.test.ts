@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { createEngine } from '../src';
+import { createEngine, type Engine } from '../src';
 import { collides, type BoardSpec } from '../src/board/board';
 import { TETROMINO_SHAPES } from '../src/pieces/tetromino';
 
-function step(e: any, ms: number) {
+function step(e: Engine, ms: number) {
   e.update(ms);
 }
 
 describe('hold, ghost, and lock reset behavior', () => {
   it('hold only once until lock, then re-enable', () => {
-    const e = createEngine({ lockDelayMs: 100, gravityCps: 0 });
+    const e = createEngine({ lockDelayMs: 100, gravityTable: { 0: 0 } });
     const s0 = e.getSnapshot();
     const first = s0.active!.id;
     // First hold succeeds
@@ -44,10 +44,11 @@ describe('hold, ghost, and lock reset behavior', () => {
     let y = a.position.y;
     while (true) {
       const pos = { x: a.position.x, y: y + 1 };
-      if (collides(spec, s.board, a.id, a.rotation as any, pos)) break;
+      if (collides(spec, s.board, a.id, a.rotation, pos)) break;
       y++;
     }
-    const shape = TETROMINO_SHAPES[a.id][a.rotation as any];
+    const shape = TETROMINO_SHAPES[a.id][a.rotation];
+    if (!shape) throw new Error(`Missing shape for ${a.id} rotation ${a.rotation}`);
     const expected = shape.map((c) => ({ x: a.position.x + c.x, y: y + c.y }));
     const ghost = s.ghost!;
     // Compare as sets of coordinates
@@ -57,7 +58,10 @@ describe('hold, ghost, and lock reset behavior', () => {
   });
 
   it('lock delay resets are bounded; piece locks after timer', () => {
-    const e = createEngine({ gravityCps: 1000, lockDelayMs: 50, maxLockResets: 2, width: 10 }, 7);
+    const e = createEngine(
+      { gravityTable: { 0: 1000 }, lockDelayMs: 50, maxLockResets: 2, width: 10 },
+      7,
+    );
     // Let it reach ground quickly
     step(e, 200);
     // Attempt many horizontal wiggles to reset lock
@@ -70,7 +74,7 @@ describe('hold, ghost, and lock reset behavior', () => {
     // After some time, piece should have locked and a new one spawned
     step(e, 200);
     const s = e.getSnapshot();
+    expect(s.board.some((cell) => cell !== 0)).toBe(true);
     expect(s.active).not.toBeNull();
   });
 });
-

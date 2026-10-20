@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { createEngine } from '../src';
+import { createEngine, type Engine } from '../src';
 
-function step(engine: any, ms: number) {
+function step(engine: Engine, ms: number) {
   engine.update(ms);
 }
 
@@ -32,14 +32,15 @@ describe('engine movement, rotation, gravity, lock', () => {
   });
 
   it('gravity drops and locks the piece over time', () => {
-    const e = createEngine({ gravityCps: 1000, lockDelayMs: 100, width: 10 }, 99);
-    // gravityCps = 1000 cells/s -> one cell per ms; hard drop quickly
-    // let it fall for a short duration and lock
-    step(e, 200); // should reach ground quickly and start lock timer
-    // wait for lock delay to elapse
+    const e = createEngine({ gravityTable: { 0: 1000 }, lockDelayMs: 100, width: 10 }, 99);
+    expect(e.getSnapshot().board.every((cell) => cell === 0)).toBe(true);
+
+    // The piece reaches the floor quickly and the lock delay elapses.
     step(e, 200);
+
+    // A locked piece leaves blocks behind and a new piece spawns.
     const snap = e.getSnapshot();
-    expect(snap.active).not.toBeNull(); // new piece spawned after lock
+    expect(snap.board.some((cell) => cell !== 0)).toBe(true);
+    expect(snap.active).not.toBeNull();
   });
 });
-

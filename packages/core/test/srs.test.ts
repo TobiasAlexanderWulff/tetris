@@ -10,7 +10,6 @@ describe('SRS', () => {
 
   it('I piece uses I kick table', () => {
     const t = getKickTable('I');
-    expect(t['0-1'][0]).toEqual({ x: 0, y: 0 });
+    expect(t['0-1']?.[0]).toEqual({ x: 0, y: 0 });
   });
 });
-
