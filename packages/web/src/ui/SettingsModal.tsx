@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSettings } from '../state/settings';
+import { useSettings, ARR_MAX_MS, ARR_MIN_MS, DAS_MAX_MS, DAS_MIN_MS } from '../state/settings';
 import { exportHighscores, importHighscores, clearHighscores } from '../highscore';
 import { ControlsPanel } from './ControlsPanel';
 
@@ -148,10 +148,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
               id="das"
               style={input}
               type="number"
-              min={0}
+              min={DAS_MIN_MS}
+              max={DAS_MAX_MS}
               step={1}
               value={settings.das}
-              onChange={(e) => setSettings({ das: clampInt(e.target.value, 0, 1000) })}
+              onChange={(e) =>
+                setSettings({ das: clampInt(e.target.value, DAS_MIN_MS, DAS_MAX_MS) })
+              }
             />
           </div>
           <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
@@ -169,10 +172,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
               id="arr"
               style={input}
               type="number"
-              min={0}
+              min={ARR_MIN_MS}
+              max={ARR_MAX_MS}
               step={1}
               value={settings.arr}
-              onChange={(e) => setSettings({ arr: clampInt(e.target.value, 0, 1000) })}
+              onChange={(e) =>
+                setSettings({ arr: clampInt(e.target.value, ARR_MIN_MS, ARR_MAX_MS) })
+              }
             />
           </div>
           <div style={row}>

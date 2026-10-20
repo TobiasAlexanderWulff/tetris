@@ -4,6 +4,19 @@ import type { InputConfig, PendingEvent } from './types';
 import { DEFAULT_INPUT } from './types';
 
 /**
+ * Smallest ARR the repeat loop accepts, in milliseconds. Values at or below
+ * zero are clamped to this so the repeat loop always terminates.
+ */
+const MIN_ARR_MS = 1;
+
+/**
+ * Maximum number of horizontal moves emitted by a single poll. This keeps a
+ * poll finite even when many repeats are due (for example after the tab was
+ * throttled), preventing input bursts.
+ */
+const MAX_REPEATS_PER_POLL = 8;
+
+/**
  * KeyboardInput implements an input source with DAS/ARR repeat logic
  * for Left/Right movement and simple one-shot events for rotations,
  * hard drop, and hold. Soft drop is emitted as start/stop.
@@ -32,7 +45,11 @@ export class KeyboardInput implements IInputSource {
   private readonly codeMap = new Map<string, string>();
 
   constructor(config?: Partial<InputConfig>) {
-    this.cfg = { ...DEFAULT_INPUT, ...config, bindings: config?.bindings ?? DEFAULT_INPUT.bindings };
+    this.cfg = {
+      ...DEFAULT_INPUT,
+      ...config,
+      bindings: config?.bindings ?? DEFAULT_INPUT.bindings,
+    };
     for (const b of this.cfg.bindings) this.codeMap.set(b.code, b.action);
   }
 
@@ -114,15 +131,26 @@ export class KeyboardInput implements IInputSource {
       const pressed = this.activeHorizontal === 'Left' ? this.leftPressed : this.rightPressed;
       const pressedAt = this.activeHorizontal === 'Left' ? this.leftDownAt : this.rightDownAt;
       if (pressed) {
+        const das = Number.isFinite(this.cfg.DAS) ? Math.max(0, this.cfg.DAS) : DEFAULT_INPUT.DAS;
+        const arr =
+          Number.isFinite(this.cfg.ARR) && this.cfg.ARR >= MIN_ARR_MS ? this.cfg.ARR : MIN_ARR_MS;
         // After DAS, emit repeats every ARR ms
         const sinceDown = nowMs - pressedAt;
-        if (sinceDown >= this.cfg.DAS) {
+        if (sinceDown >= das) {
           // Compute number of repeats that should have happened since lastRepeatAt
-          let nextAt = Math.max(this.lastRepeatAt, pressedAt + this.cfg.DAS);
-          while (nextAt + this.cfg.ARR <= nowMs + 0.0001) {
-            nextAt += this.cfg.ARR;
-            out.push({ type: this.activeHorizontal === 'Left' ? 'MoveLeft' : 'MoveRight', at: nowMs } as InputEvent);
+          let nextAt = Math.max(this.lastRepeatAt, pressedAt + das);
+          let emitted = 0;
+          while (nextAt + arr <= nowMs + 0.0001 && emitted < MAX_REPEATS_PER_POLL) {
+            nextAt += arr;
+            emitted++;
+            out.push({
+              type: this.activeHorizontal === 'Left' ? 'MoveLeft' : 'MoveRight',
+              at: nowMs,
+            } as InputEvent);
           }
+          // If we hit the cap, resync to now so the backlog is dropped instead
+          // of producing another burst on the next poll.
+          if (emitted >= MAX_REPEATS_PER_POLL) nextAt = Math.max(nextAt, nowMs);
           this.lastRepeatAt = nextAt;
         }
       }
@@ -189,12 +217,14 @@ export class KeyboardInput implements IInputSource {
     switch (action) {
       case 'Left':
         this.leftPressed = false;
-        if (this.activeHorizontal === 'Left') this.activeHorizontal = this.rightPressed ? 'Right' : null;
+        if (this.activeHorizontal === 'Left')
+          this.activeHorizontal = this.rightPressed ? 'Right' : null;
         this.lastRepeatAt = 0;
         break;
       case 'Right':
         this.rightPressed = false;
-        if (this.activeHorizontal === 'Right') this.activeHorizontal = this.leftPressed ? 'Left' : null;
+        if (this.activeHorizontal === 'Right')
+          this.activeHorizontal = this.leftPressed ? 'Left' : null;
         this.lastRepeatAt = 0;
         break;
       case 'SoftDrop':
