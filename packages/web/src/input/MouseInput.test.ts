@@ -57,6 +57,63 @@ describe('MouseInput', () => {
     expect(evts.map((e) => e.type)).toEqual(['MoveRight', 'MoveRight']);
   });
 
+  it('uses the configured sensitivity for horizontal steps', () => {
+    const mi = new MouseInput({
+      enabled: true,
+      allow180: false,
+      deadzonePx: 0,
+      sensitivityPxPerCell: 10,
+    });
+    mi.attach(el);
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 0, clientY: 10, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 25, clientY: 10, bubbles: true }));
+
+    // 25px / 10px per cell = 2 moves (layout cell would only give 1).
+    expect(mi.poll(1010).map((e) => e.type)).toEqual(['MoveRight', 'MoveRight']);
+  });
+
+  it('respects a slower sensitivity override', () => {
+    const mi = new MouseInput({
+      enabled: true,
+      allow180: false,
+      deadzonePx: 0,
+      sensitivityPxPerCell: 100,
+    });
+    mi.attach(el);
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 0, clientY: 10, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 45, clientY: 10, bubbles: true }));
+
+    expect(mi.poll(1020)).toEqual([]);
+  });
+
+  it('falls back to the layout cell for invalid sensitivity values', () => {
+    const mi = new MouseInput({
+      enabled: true,
+      allow180: false,
+      deadzonePx: 0,
+      sensitivityPxPerCell: 0,
+    });
+    mi.attach(el);
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 0, clientY: 10, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 45, clientY: 10, bubbles: true }));
+
+    // Falls back to the 20px layout cell → 2 moves.
+    expect(mi.poll(1030).map((e) => e.type)).toEqual(['MoveRight', 'MoveRight']);
+  });
+
+  it('applies sensitivity changes from updateConfig immediately', () => {
+    const mi = new MouseInput({ enabled: true, allow180: false, deadzonePx: 0 });
+    mi.attach(el);
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 0, clientY: 10, bubbles: true }));
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 25, clientY: 10, bubbles: true }));
+    expect(mi.poll(1040).map((e) => e.type)).toEqual(['MoveRight']);
+
+    mi.updateConfig({ sensitivityPxPerCell: 10 });
+    el.dispatchEvent(new PointerEvent('pointermove', { clientX: 50, clientY: 10, bubbles: true }));
+    // 5px remainder + 25px new delta = 30px → 3 moves at 10px per cell.
+    expect(mi.poll(1041).map((e) => e.type)).toEqual(['MoveRight', 'MoveRight', 'MoveRight']);
+  });
+
   it('emits rotations on wheel', () => {
     const mi = new MouseInput({ enabled: true, allow180: false });
     mi.attach(el);

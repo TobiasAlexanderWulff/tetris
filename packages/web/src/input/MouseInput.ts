@@ -181,6 +181,15 @@ export class MouseInput implements IInputSource {
     const layout = computeBoardLayout(rect.width, rect.height, 10, 20, 0);
     const cellPx = layout.cell;
     if (!cellPx) return;
+    // Horizontal movement is converted with the configured sensitivity when
+    // present; edge guards below stay tied to the physical board geometry.
+    const configuredPxPerCell = this.cfg.sensitivityPxPerCell;
+    const pxPerCell =
+      typeof configuredPxPerCell === 'number' &&
+      Number.isFinite(configuredPxPerCell) &&
+      configuredPxPerCell > 0
+        ? configuredPxPerCell
+        : cellPx;
     // Board rect in CSS pixels within the canvas
     const bx1 = rect.left + layout.ox;
     const by1 = rect.top + layout.oy;
@@ -208,7 +217,7 @@ export class MouseInput implements IInputSource {
       this.lastX = x;
       if (this.activationArmed) {
         const cells = this.activationThresholdCells ?? 0;
-        this.activationPxRemaining = Math.max(0, cells * cellPx);
+        this.activationPxRemaining = Math.max(0, cells * pxPerCell);
         this.activationArmed = false;
         this.accumDx = 0;
       }
@@ -251,14 +260,14 @@ export class MouseInput implements IInputSource {
     // Apply deadzone (after activation was consumed)
     if (Math.abs(this.accumDx) < (this.cfg.deadzonePx ?? 0)) return;
     // Translate to steps
-    const steps = Math.trunc(this.accumDx / cellPx);
+    const steps = Math.trunc(this.accumDx / pxPerCell);
     if (steps === 0) return;
     // Cap burst
     const capped = Math.max(-this.cfg.maxBurstSteps, Math.min(this.cfg.maxBurstSteps, steps));
     const dir: InputEvent['type'] = capped > 0 ? 'MoveRight' : 'MoveLeft';
     for (let i = 0; i < Math.abs(capped); i++) this.queue(dir);
     // Keep remainder
-    this.accumDx -= steps * cellPx;
+    this.accumDx -= steps * pxPerCell;
   };
 
   private onWheel = (ev: WheelEvent): void => {
@@ -335,12 +344,6 @@ export class MouseInput implements IInputSource {
   };
 
   // --- Helpers ---
-
-  private cellWidthPx(rect: DOMRect): number | null {
-    // 10 columns, 20 rows visible in current engine config
-    const layout = computeBoardLayout(rect.width, rect.height, 10, 20, 0);
-    return layout.cell || null;
-  }
 
   private queue(type: InputEvent['type']): void {
     // At timestamp assigned during poll
