@@ -75,9 +75,6 @@ function GameCanvasInner(): JSX.Element {
   const [canHold, setCanHold] = React.useState(true);
   const audio = useAudio();
   // Refs to avoid stale closure inside host effect
-  const scoreRef = React.useRef(0);
-  const levelRef = React.useRef(0);
-  const linesRef = React.useRef(0);
   const animationsRef = React.useRef(settings.animations);
   React.useEffect(() => {
     animationsRef.current = settings.animations;
@@ -238,11 +235,15 @@ function GameCanvasInner(): JSX.Element {
         }
         if (!submittedRef.current) {
           submittedRef.current = true;
+          // Read authoritative values from the engine. React state/refs may not
+          // have flushed the final ScoreChanged/LinesCleared/LevelChanged events
+          // that were emitted in the same tick as GameOver.
+          const snapshot = engine.getSnapshot();
           const duration = Math.max(0, Math.floor(performance.now() - startTimeRef.current));
           const res = maybeSubmit({
-            score: scoreRef.current,
-            lines: linesRef.current,
-            level: levelRef.current,
+            score: snapshot.score,
+            lines: snapshot.linesClearedTotal,
+            level: snapshot.level,
             durationMs: duration,
             mode: 'marathon',
           });
@@ -354,17 +355,6 @@ function GameCanvasInner(): JSX.Element {
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
-
-  // Keep refs in sync to satisfy hooks lint without restarting host effect
-  useEffect(() => {
-    scoreRef.current = score;
-  }, [score]);
-  useEffect(() => {
-    levelRef.current = level;
-  }, [level]);
-  useEffect(() => {
-    linesRef.current = lines;
-  }, [lines]);
 
   const startGame = React.useCallback(() => {
     setStarted(true);

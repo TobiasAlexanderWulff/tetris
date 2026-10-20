@@ -4,7 +4,12 @@ import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 // Shared mock state, declared via vi.hoisted so the hoisted vi.mock factory can use it.
-const hostState = vi.hoisted(() => ({ pausedCalls: [] as boolean[] }));
+const hostState = vi.hoisted(() => ({
+  pausedCalls: [] as boolean[],
+  score: 0,
+  level: 0,
+  lines: 0,
+}));
 
 // Mock highscore API to observe calls
 vi.mock('../highscore', () => {
@@ -44,8 +49,16 @@ vi.mock('../game/GameHost', () => {
       public engine: EngineMock,
     ) {}
     start() {
-      // trigger game over soon
+      // Trigger a final scoring tick followed by game over in the same drain.
+      // React state/refs would still be stale here; the host must read the
+      // engine snapshot instead.
       setTimeout(() => {
+        hostState.score = 4321;
+        hostState.level = 7;
+        hostState.lines = 42;
+        this._emit({ type: 'ScoreChanged', delta: 4321, score: 4321 });
+        this._emit({ type: 'LevelChanged', level: 7 });
+        this._emit({ type: 'LinesCleared', count: 42, rows: [], b2b: false, combo: 0 });
         this._emit({ type: 'GameOver' });
       }, 0);
     }
@@ -78,9 +91,9 @@ vi.mock('../game/GameHost', () => {
           canHold: true,
           next: [],
           timers: { lockMsLeft: null },
-          score: 0,
-          level: 0,
-          linesClearedTotal: 0,
+          score: hostState.score,
+          level: hostState.level,
+          linesClearedTotal: hostState.lines,
         };
       },
       // expose a way for host to emit events
@@ -144,15 +157,21 @@ describe('GameCanvas highscore integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hostState.pausedCalls.length = 0;
+    hostState.score = 0;
+    hostState.level = 0;
+    hostState.lines = 0;
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it('submits a highscore on Game Over', async () => {
+  it('submits the final snapshot values on Game Over', async () => {
     render(<GameCanvas />);
     await waitFor(() => expect(maybeSubmit).toHaveBeenCalledTimes(1));
+    expect(maybeSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ score: 4321, lines: 42, level: 7, mode: 'marathon' }),
+    );
   });
 
   it('ignores Escape after game over instead of resuming the host', async () => {
