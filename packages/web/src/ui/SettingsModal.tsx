@@ -2,6 +2,7 @@ import React from 'react';
 import { useSettings, ARR_MAX_MS, ARR_MIN_MS, DAS_MAX_MS, DAS_MIN_MS } from '../state/settings';
 import { exportHighscores, importHighscores, clearHighscores } from '../highscore';
 import { ControlsPanel } from './ControlsPanel';
+import { VolumeSlider } from './VolumeSlider';
 
 /**
  * SettingsModal presents gameplay, audio, and control options.
@@ -208,21 +209,24 @@ export function SettingsModal({ onClose }: { onClose: () => void }): JSX.Element
               onChange={(e) => setSettings({ allow180: e.target.checked })}
             />
           </div>
-          <div style={row}>
-            <label htmlFor="master">Master Volume</label>
-            <input
-              id="master"
-              style={{ width: '100%' }}
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={settings.audio.master}
-              onChange={(e) =>
-                setSettings({ audio: { ...settings.audio, master: Number(e.target.value) } })
-              }
-            />
-          </div>
+          <VolumeSlider
+            id="master"
+            label="Master Volume"
+            value={settings.audio.master}
+            onChange={(master) => setSettings({ audio: { ...settings.audio, master } })}
+          />
+          <VolumeSlider
+            id="music"
+            label="Music Volume"
+            value={settings.audio.music}
+            onChange={(music) => setSettings({ audio: { ...settings.audio, music } })}
+          />
+          <VolumeSlider
+            id="sfx"
+            label="SFX Volume"
+            value={settings.audio.sfx}
+            onChange={(sfx) => setSettings({ audio: { ...settings.audio, sfx } })}
+          />
           <div style={{ ...row, gridTemplateColumns: 'auto 1fr' }}>
             <label htmlFor="mute">Mute All</label>
             <input
