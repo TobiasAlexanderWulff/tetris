@@ -4,7 +4,6 @@ import React from 'react';
 export interface GameLayoutProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
   touchControlsEnabled: boolean;
-  touchControls?: React.ReactNode;
   pauseDisabled: boolean;
   onPause: () => void;
   hud: React.ReactNode;
@@ -20,7 +19,6 @@ export interface GameLayoutProps {
 export function GameLayout({
   canvasRef,
   touchControlsEnabled,
-  touchControls,
   pauseDisabled,
   onPause,
   hud,
@@ -57,11 +55,6 @@ export function GameLayout({
       </main>
       <aside className="game-layout__right-rail" aria-label="right-game-controls">
         <aside className="game-layout__next">{next}</aside>
-        {touchControls ? (
-          <div className="game-layout__touch-controls" aria-label="touch-control-region">
-            {touchControls}
-          </div>
-        ) : null}
       </aside>
       {status}
       <div className="game-layout__overlays">{children}</div>

@@ -118,8 +118,7 @@ button {
   pointer-events: auto;
 }
 
-.game-layout__pause-button,
-.touch-control-button {
+.game-layout__pause-button {
   min-height: 48px;
   min-width: 48px;
   border: 1px solid #64748b;
@@ -167,24 +166,9 @@ button {
   background: #334155;
 }
 
-.game-layout__pause-button:disabled,
-.touch-control-button:disabled {
+.game-layout__pause-button:disabled {
   cursor: default;
   opacity: 0.45;
-}
-
-.touch-controls {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(48px, 1fr));
-  gap: 8px;
-}
-
-.touch-controls--with-180 {
-  grid-template-columns: repeat(5, minmax(48px, 1fr));
-}
-
-.touch-control-button--harddrop {
-  background: #7c2d12;
 }
 
 .game-layout[data-touch-controls='true'] {
@@ -283,14 +267,6 @@ button {
   gap: 3px !important;
 }
 
-.game-layout__touch-controls {
-  grid-column: 1 / -1;
-  grid-row: 3;
-  width: min(100%, 560px);
-  margin: 0 auto;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
 @media (max-width: 299px) {
   .game-layout[data-touch-controls='true'] .hud-panel {
     align-content: center;
@@ -298,10 +274,6 @@ button {
 
   .game-layout[data-touch-controls='true'] .next-queue svg:nth-of-type(n + 3) {
     display: none;
-  }
-
-  .touch-controls--with-180 {
-    grid-template-columns: repeat(3, minmax(48px, 1fr));
   }
 }
 
@@ -387,37 +359,6 @@ button {
     grid-row: 1;
     width: 100%;
     height: 100%;
-  }
-
-  .game-layout[data-touch-controls='true'] .game-layout__touch-controls {
-    width: 100%;
-    margin: 0;
-    align-self: center;
-    padding-bottom: 0;
-  }
-
-  .game-layout[data-touch-controls='true'] .touch-controls,
-  .game-layout[data-touch-controls='true'] .touch-controls--with-180 {
-    grid-template-columns: repeat(2, minmax(64px, 1fr));
-    gap: 6px;
-  }
-
-  .game-layout[data-touch-controls='true'] .touch-control-button--hold {
-    grid-column: 1 / -1;
-  }
-
-  .game-layout[data-touch-controls='true'] .touch-control-button--rotateccw {
-    grid-column: 1;
-  }
-
-  .game-layout[data-touch-controls='true'] .touch-control-button--rotatecw {
-    grid-column: 2;
-  }
-
-  .game-layout[data-touch-controls='true']
-    .touch-controls:not(.touch-controls--with-180)
-    .touch-control-button--harddrop {
-    grid-column: 1 / -1;
   }
 
   .game-layout[data-touch-controls='true'] .touch-onboarding {

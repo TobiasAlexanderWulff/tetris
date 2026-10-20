@@ -23,11 +23,10 @@ describe('GameLayout', () => {
     );
 
     expect(screen.getByLabelText('game-layout').dataset.touchControls).toBe('false');
-    expect(screen.queryByLabelText('touch-control-region')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Pause game' })).toBeNull();
   });
 
-  it('renders a semantic pause button without a touch action region', () => {
+  it('renders a semantic pause button in touch mode', () => {
     const onPause = vi.fn();
     render(
       <GameLayout
@@ -42,7 +41,6 @@ describe('GameLayout', () => {
     );
 
     expect(screen.getByLabelText('game-layout').dataset.touchControls).toBe('true');
-    expect(screen.queryByLabelText('touch-control-region')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Pause game' }));
     expect(onPause).toHaveBeenCalledTimes(1);
   });

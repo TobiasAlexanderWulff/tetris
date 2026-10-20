@@ -61,7 +61,6 @@ describe('GameCanvas start interaction', () => {
     render(<GameCanvas />);
 
     expect(screen.getByRole('button', { name: 'Pause game' })).toBeTruthy();
-    expect(screen.queryByLabelText('touch-control-region')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Hold' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Rotate counterclockwise' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Rotate clockwise' })).toBeNull();
