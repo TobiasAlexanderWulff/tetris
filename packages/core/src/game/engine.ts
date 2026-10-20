@@ -440,10 +440,20 @@ export class Engine {
     this.s.lockResetsUsed = 0;
     // Clear lines
     const rows = clearFullRows(this.s.spec, this.s.grid);
+    // Capture whether the current clear continues an existing back-to-back chain.
+    // applyScoring updates the internal flag, so it must be read before scoring.
+    const wasB2b = this.s.b2b;
     // Scoring and metrics
     this.applyScoring(rows.length);
     if (rows.length > 0)
-      this.s.events.push({ type: 'LinesCleared', count: rows.length, rows, b2b: this.s.b2b, combo: Math.max(0, this.s.combo) });
+      this.s.events.push({
+        type: 'LinesCleared',
+        count: rows.length,
+        rows,
+        // Only a Tetris that follows another Tetris is an actual B2B clear.
+        b2b: wasB2b && rows.length === 4,
+        combo: Math.max(0, this.s.combo),
+      });
     // After a lock, the next spawn should re-enable hold
     this.spawnNext(/*resetHold*/ true);
   }
