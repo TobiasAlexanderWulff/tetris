@@ -1,3 +1,11 @@
 packages:
   - 'packages/*'
 
+# esbuild's postinstall downloads/validates its platform binary; the package is
+# trusted, so allow it to run. pnpm blocks build scripts by default.
+allowBuilds:
+  esbuild: true
+
+# pnpm 12 reads settings such as overrides from this file, not package.json.
+overrides:
+  typescript: 5.5.4
