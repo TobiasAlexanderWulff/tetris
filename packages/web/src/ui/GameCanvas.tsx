@@ -339,16 +339,18 @@ function GameCanvasInner(): JSX.Element {
     rendererRef.current?.setPalette(getPalette(settings.theme));
   }, [settings.theme]);
 
-  // Poll preview state from snapshot each animation frame (small data)
+  // Poll preview state from snapshot each animation frame (small data).
+  // Keep the previous object when nothing changed so React can bail out and
+  // the UI does not rerender on every frame.
   useEffect(() => {
     let raf = 0;
     const tick = () => {
       const e = engineRef.current;
       if (e) {
         const s = e.getSnapshot();
-        setNextIds(s.next);
-        setHoldId(s.hold);
-        setCanHold(s.canHold);
+        setNextIds((prev) => (sameTetrominoIds(prev, s.next) ? prev : s.next));
+        setHoldId((prev) => (prev === s.hold ? prev : s.hold));
+        setCanHold((prev) => (prev === s.canHold ? prev : s.canHold));
       }
       raf = requestAnimationFrame(tick);
     };
@@ -491,6 +493,19 @@ function GameCanvasInner(): JSX.Element {
       />
     </GameLayout>
   );
+}
+
+/**
+ * Compare two preview queues by value. Engine snapshots expose a fresh array
+ * every frame, so an identity check alone would never bail out.
+ */
+function sameTetrominoIds(
+  a: readonly import('@tetris/core').TetrominoId[],
+  b: readonly import('@tetris/core').TetrominoId[],
+): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  return a.every((id, index) => id === b[index]);
 }
 
 /**

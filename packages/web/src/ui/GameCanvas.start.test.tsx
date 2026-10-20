@@ -1,12 +1,23 @@
 /* @vitest-environment jsdom */
-import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { GameCanvas } from './GameCanvas';
 
+// Track renders of the next queue to detect per-frame rerenders.
+const nextQueueSpy = vi.hoisted(() => ({ renders: 0 }));
+
+vi.mock('./NextQueue', () => ({
+  NextQueue: () => {
+    nextQueueSpy.renders += 1;
+    return null;
+  },
+}));
+
 describe('GameCanvas start interaction', () => {
   beforeEach(() => {
     localStorage.clear();
+    nextQueueSpy.renders = 0;
   });
 
   afterEach(() => {
@@ -86,5 +97,20 @@ describe('GameCanvas start interaction', () => {
     const hud = screen.getByLabelText('hud');
     expect(within(hud).getByText('Score:')).toBeTruthy();
     expect(within(hud).getAllByText('0')).toHaveLength(3);
+  });
+
+  it('does not rerender the next queue on unchanged preview frames', async () => {
+    render(<GameCanvas />);
+    fireEvent.click(screen.getByRole('button', { name: 'Start game' }));
+    await waitFor(() => {
+      expect(screen.queryByLabelText('start-overlay')).toBeNull();
+    });
+
+    // Let the initial preview state settle, then observe a few frames.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const baseline = nextQueueSpy.renders;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    expect(nextQueueSpy.renders).toBe(baseline);
   });
 });
