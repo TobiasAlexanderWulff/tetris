@@ -68,6 +68,9 @@ export class KeyboardInput implements IInputSource {
 
   /** Reset pending inputs and pressed states (used when pausing). */
   reset(): void {
+    // If soft drop was held, tell the engine to stop it. Otherwise releasing
+    // the key while paused (listeners are detached) would leave soft drop on.
+    const wasSoftDropping = this.softDropPressed;
     this.pending = [];
     this.leftPressed = false;
     this.rightPressed = false;
@@ -79,6 +82,7 @@ export class KeyboardInput implements IInputSource {
     this.leftStampPending = false;
     this.rightStampPending = false;
     this.lastPollNow = 0;
+    if (wasSoftDropping) this.pending.push('SoftDropStop');
   }
 
   /** Attach listeners to the DOM element or window. */

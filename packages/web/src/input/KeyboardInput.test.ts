@@ -104,4 +104,27 @@ describe('KeyboardInput', () => {
     ku('ArrowLeft');
     input.detach();
   });
+
+  it('queues SoftDropStop on reset while soft drop is held', () => {
+    const input = new KeyboardInput();
+    input.attach(window);
+    kd('ArrowDown');
+    expect(input.poll(0).map((e) => e.type)).toEqual(['SoftDropStart']);
+
+    input.reset();
+
+    expect(input.poll(10).map((e) => e.type)).toEqual(['SoftDropStop']);
+    // A second reset must not emit another stop.
+    input.reset();
+    expect(input.poll(20)).toEqual([]);
+    input.detach();
+  });
+
+  it('reset without active soft drop emits nothing', () => {
+    const input = new KeyboardInput();
+    input.attach(window);
+    input.reset();
+    expect(input.poll(0)).toEqual([]);
+    input.detach();
+  });
 });
